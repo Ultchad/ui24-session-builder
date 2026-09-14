@@ -3,7 +3,7 @@
 
 use serde::Serialize;
 use std::fmt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use ui24_core::{validate_session, Session, ValidationIssue};
 
 const UI24R_AUDIO_EXTENSION: &str = ".flac";
@@ -57,6 +57,51 @@ impl Ui24rSessionConfiguration {
         std::fs::write(destination, json)
             .map_err(|error| SessionGenerationError::Write(error.to_string()))
     }
+}
+
+/// Generates a complete session folder from already-converted FLAC sources.
+///
+/// `source_files` must contain one existing `.flac` file per session track, in
+/// the same order as `session.tracks`. The destination directory is created
+/// when necessary and may already exist.
+pub fn generate_session_folder(
+    session: &Session,
+    source_files: &[PathBuf],
+    destination: impl AsRef<Path>,
+) -> Result<(), SessionGenerationError> {
+    let configuration = generate_configuration(session)?;
+    if source_files.len() != session.tracks.len() {
+        return Err(SessionGenerationError::SourceFiles(format!(
+            "expected {} FLAC source file(s), received {}",
+            session.tracks.len(),
+            source_files.len()
+        )));
+    }
+
+    let destination = destination.as_ref();
+    std::fs::create_dir_all(destination)
+        .map_err(|error| SessionGenerationError::Write(error.to_string()))?;
+
+    for (track, source) in session.tracks.iter().zip(source_files) {
+        if source.extension().and_then(|extension| extension.to_str()) != Some("flac") {
+            return Err(SessionGenerationError::SourceFiles(format!(
+                "source {} is not a FLAC file",
+                source.display()
+            )));
+        }
+        if !source.is_file() {
+            return Err(SessionGenerationError::SourceFiles(format!(
+                "source file does not exist: {}",
+                source.display()
+            )));
+        }
+
+        let filename = format!("{}.flac", filename_without_extension(&track.file_name));
+        std::fs::copy(source, destination.join(filename))
+            .map_err(|error| SessionGenerationError::Write(error.to_string()))?;
+    }
+
+    configuration.write_json(destination.join(".uirecsession"))
 }
 
 /// Generates a verified Ui24R configuration from a validated domain session.
@@ -116,6 +161,8 @@ pub enum SessionGenerationError {
     Serialization(String),
     /// The JSON file could not be written.
     Write(String),
+    /// Source audio files do not match the session requirements.
+    SourceFiles(String),
 }
 
 impl fmt::Display for SessionGenerationError {
@@ -124,7 +171,9 @@ impl fmt::Display for SessionGenerationError {
             Self::InvalidSession(issues) => {
                 write!(formatter, "session is invalid ({} issue(s))", issues.len())
             }
-            Self::Serialization(message) | Self::Write(message) => formatter.write_str(message),
+            Self::Serialization(message) | Self::Write(message) | Self::SourceFiles(message) => {
+                formatter.write_str(message)
+            }
         }
     }
 }
@@ -199,5 +248,56 @@ mod tests {
     fn strips_unix_and_windows_filename_extensions() {
         assert_eq!(filename_without_extension("dir/lead.wav"), "lead");
         assert_eq!(filename_without_extension(r"dir\lead.flac"), "lead");
+    }
+
+    #[test]
+    fn generates_session_folder_with_configuration_and_flac_sources() {
+        let root = std::env::temp_dir().join(format!(
+            "ui24-session-generator-test-{}",
+            std::process::id()
+        ));
+        let source_one = root.join("source-one.flac");
+        let source_two = root.join("source-two.flac");
+        let destination = root.join("session");
+        std::fs::create_dir_all(&root).expect("test root should be created");
+        std::fs::write(&source_one, b"flac-one").expect("source one should be written");
+        std::fs::write(&source_two, b"flac-two").expect("source two should be written");
+
+        generate_session_folder(
+            &session(),
+            &[source_one.clone(), source_two.clone()],
+            &destination,
+        )
+        .expect("session folder should be generated");
+
+        assert_eq!(
+            std::fs::read(destination.join("03 - Vocal 1.flac")).expect("track one should exist"),
+            b"flac-one"
+        );
+        assert!(destination.join(".uirecsession").is_file());
+        std::fs::remove_dir_all(root).expect("test root should be removable");
+    }
+
+    #[test]
+    fn rejects_non_flac_source_files() {
+        let root = std::env::temp_dir().join(format!(
+            "ui24-session-generator-invalid-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&root).expect("test root should be created");
+        let wav_source = root.join("source.wav");
+        std::fs::write(&wav_source, b"wav").expect("source should be written");
+
+        let result = generate_session_folder(
+            &session(),
+            &[wav_source, root.join("missing.flac")],
+            root.join("session"),
+        );
+
+        assert!(matches!(
+            result,
+            Err(SessionGenerationError::SourceFiles(_))
+        ));
+        std::fs::remove_dir_all(root).expect("test root should be removable");
     }
 }

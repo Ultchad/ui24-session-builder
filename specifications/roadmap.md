@@ -7,13 +7,13 @@
 | Phase 1 | Partially complete | Preliminary format documentation exists; sample corpus and complete validation tooling remain outstanding. |
 | Phase 2 | Complete | Rust workspace, domain model, validation engine, and WAV/FLAC/AIFF/MP3 metadata extraction are implemented and tested. |
 | Phase 3 | Complete | In-memory conversion, generic output, benchmark, file output, and generated-fixture tests are implemented. |
-| Phase 4 | In progress | Validated `.uirecsession` JSON configuration generation is implemented; folder/audio/ZIP export remains. |
+| Phase 4 | In progress | Validated configuration and folder generation from prepared FLAC sources are implemented; CLI wiring and ZIP export remain. |
 | Phase 5 | In progress | Initial CLI audio analysis and conversion commands are implemented. |
 | Phase 6 | Planned | WebAssembly bindings are not implemented yet. |
 | Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, and `.uirecsession` download are available; shared Rust/WASM processing is still pending. Microphone capture is explicitly deferred. |
 | Phases 8-9 | Planned | No production implementation yet. |
 
-The project currently has no session folder exporter, ZIP exporter, WebAssembly processing layer, or session-level export workflow.
+The project currently has no ZIP exporter, WebAssembly processing layer, or CLI session-creation workflow.
 
 ## Phase 1
 
@@ -105,12 +105,14 @@ Implemented:
 - Filenames without extensions
 - `i.N` channel mapping serialization
 - JSON string and file output APIs
+- Session folder generation from prepared FLAC sources
+- Ordered FLAC copy and `.uirecsession` file creation
 - Golden tests based on the observed Ui24R schema
 
 Remaining:
 
-- Generated FLAC files in the session directory
-- Session folder layout
+- CLI session-creation command
+- Automatic audio conversion during session export
 - Export validation against real Ui24R fixtures
 - ZIP archive export
 

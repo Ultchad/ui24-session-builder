@@ -22,15 +22,16 @@ Implemented today:
 - Unit, integration, documentation, and benchmark checks
 
 The Phase 4 generator can now create a validated `.uirecsession` JSON
-configuration from the Rust session model. Audio files, folder layout, and ZIP
-export are still pending.
+configuration and a complete session folder from already-converted FLAC files.
+CLI wiring, automatic audio conversion during export, and ZIP export are still
+pending.
 
 Still in development:
 
 - External audio fixture corpus
 - MP3 decoder hardening for malformed or truncated files
-- Complete `.uirecsession` folder/export workflow
-- Full session export with generated audio files
+- CLI session creation workflow
+- Full session export with automatic audio conversion
 - ZIP export
 - Rust/WebAssembly audio processing in the browser
 - Browser microphone recording permission and capture
