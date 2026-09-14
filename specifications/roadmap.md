@@ -149,7 +149,7 @@ Implemented:
 - Multiple audio-file selection
 - Editable track names and channel mappings
 - Read-only filename display matching the `files` field
-- Numeric mapping editor exported as `i.N`
+- Numeric mapping editor with a fixed `i.` prefix, exported as `i.N`
 - Browser `.uirecsession` download
 - Docker preview on host port 8080
 

@@ -43,11 +43,13 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .metric strong { font-size: 27px; font-weight: 400; overflow-wrap: anywhere; }
 .track-list { margin-top: 20px; border-top: 1px solid var(--line); }
 .track { display: grid; grid-template-columns: 42px minmax(160px, 1.25fr) minmax(160px, 1fr) 100px 74px; gap: 16px; padding: 15px 0; border-bottom: 1px solid var(--line); align-items: center; }
-.track-header { padding: 10px 0; color: var(--muted); font: 700 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+.track-header { padding: 12px 10px; border-bottom: 2px solid var(--accent-dark); background: #eee9df; color: var(--accent-dark); font: 700 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
 .track-index, .track-channel { color: var(--accent-dark); font: 700 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .track-name { overflow-wrap: anywhere; }
 input.track-filename, input.track-name, input.track-channel { width: 100%; min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 0; background: var(--panel); color: var(--ink); font: inherit; }
 input.track-filename { background: #eee9df; color: var(--muted); }
+.mapping-input { display: flex; align-items: center; gap: 4px; color: var(--accent-dark); font: 700 13px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.mapping-input .track-channel { flex: 1; min-width: 0; }
 input.track-name:focus, input.track-channel:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
 button { padding: 10px 13px; border: 1px solid var(--accent-dark); border-radius: 0; background: var(--accent-dark); color: #fffdf8; font: 700 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; cursor: pointer; }
 button:hover { background: var(--accent); }
@@ -63,6 +65,6 @@ button.secondary, .remove-track { border-color: var(--line); background: transpa
   .track-header { display: none; }
   .track-filename { grid-column: 2 / -1; }
   .track-name { grid-column: 2; }
-  .track-channel { grid-column: 3; }
+  .mapping-input { grid-column: 3; }
   .track .remove-track { grid-column: 2 / -1; justify-self: start; }
 }

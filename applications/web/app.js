@@ -76,7 +76,7 @@ function editableTracks() {
   const tracks = workspace.session ? workspace.session.files : workspace.files.map((file) => file.name);
   const names = workspace.session?.names ?? tracks.map(stripExtension);
   const mappings = workspace.session?.mapping ?? tracks.map((_, index) => `i.${index}`);
-  return `<div class="track-list">
+  return `<div class="track-list" role="table" aria-label="Session tracks">
     <div class="track track-header" role="row">
       <span role="columnheader">#</span>
       <span role="columnheader">Filename</span>
@@ -89,7 +89,7 @@ function editableTracks() {
       <span class="track-index">${String(index + 1).padStart(2, "0")}</span>
       <input class="track-filename" value="${escapeAttribute(name)}" aria-label="Track ${index + 1} filename" readonly>
       <input class="track-name" data-field="name" value="${escapeAttribute(names[index] ?? name)}" aria-label="Track ${index + 1} name">
-      <input class="track-channel" data-field="mapping" type="number" min="0" max="21" step="1" value="${escapeAttribute(mappingNumber(mappings[index], index))}" aria-label="Track ${index + 1} mapping number">
+      <label class="mapping-input"><span aria-hidden="true">i.</span><input class="track-channel" data-field="mapping" type="number" min="0" max="21" step="1" value="${escapeAttribute(mappingNumber(mappings[index], index))}" aria-label="Track ${index + 1} mapping number"></label>
       <button class="remove-track" type="button" title="Remove track" data-remove="${index}">Remove</button>
     </div>`).join("")}</div>`;
 }

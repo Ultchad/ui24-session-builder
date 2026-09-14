@@ -17,7 +17,7 @@ Implemented today:
 - CLI audio analysis and conversion commands
 - Static Web preview compatible with GitHub Pages
 - Browser drag-and-drop and multiple-file selection
-- Read-only filenames with editable track names and numeric channel mappings
+- Visible table headers, read-only filenames, editable track names, and numeric channel mappings
 - Browser `.uirecsession` download
 - Unit, integration, documentation, and benchmark checks
 
