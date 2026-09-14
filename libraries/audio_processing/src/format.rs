@@ -3,12 +3,18 @@ use std::fmt;
 /// Audio formats accepted as session input.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AudioFormat {
+    /// Waveform Audio File Format.
     Wav,
+    /// Free Lossless Audio Codec.
     Flac,
+    /// Audio Interchange File Format.
     Aiff,
 }
 
 impl AudioFormat {
+    /// Maps a filename extension to a supported audio format.
+    ///
+    /// The leading dot is optional and matching is case-insensitive.
     pub fn from_extension(extension: &str) -> Option<Self> {
         match extension
             .trim_start_matches('.')

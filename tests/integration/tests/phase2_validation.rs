@@ -1,10 +1,11 @@
 use ui24_audio_processing::{AudioFormat, AudioMetadata};
 use ui24_core::{
-    validate_session, AudioTrack, ChannelAssignment, Session, SessionMetadata, ValidationIssueKind,
+    validate_session, ChannelAssignment, Session, SessionMetadata, SessionTrack,
+    ValidationIssueKind,
 };
 
-fn track(name: &str, channel: u8, sample_rate: u32) -> AudioTrack {
-    AudioTrack {
+fn track(name: &str, channel: u8, sample_rate: u32) -> SessionTrack {
+    SessionTrack {
         display_name: name.to_owned(),
         file_name: format!("{name}.wav"),
         metadata: AudioMetadata {
@@ -14,11 +15,11 @@ fn track(name: &str, channel: u8, sample_rate: u32) -> AudioTrack {
             channel_count: 1,
             duration_samples: 48_000,
         },
-        channel: ChannelAssignment::new(channel).expect("test channel must be valid"),
+        channel_assignment: ChannelAssignment::new(channel).expect("test channel must be valid"),
     }
 }
 
-fn session(tracks: Vec<AudioTrack>) -> Session {
+fn session(tracks: Vec<SessionTrack>) -> Session {
     Session {
         metadata: SessionMetadata {
             name: "Test session".to_owned(),

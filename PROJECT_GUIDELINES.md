@@ -165,7 +165,7 @@ Examples:
 
 Good:
 
-AudioTrack
+SessionTrack
 
 Bad:
 
