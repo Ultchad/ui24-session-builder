@@ -10,7 +10,7 @@
 | Phase 4 | Next | Session configuration and folder generation are not implemented yet. |
 | Phase 5 | In progress | Initial CLI audio analysis and conversion commands are implemented. |
 | Phase 6 | Planned | WebAssembly bindings are not implemented yet. |
-| Phase 7 | In progress | A static browser preview is available; shared Rust/WASM processing is still pending. |
+| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, and `.uirecsession` download are available; shared Rust/WASM processing is still pending. |
 | Phases 8-9 | Planned | No production implementation yet. |
 
 The project currently has no session generator, ZIP exporter, WebAssembly processing layer, or session-level export workflow.
@@ -145,6 +145,10 @@ Implemented:
 - Static browser page compatible with GitHub Pages
 - Local `.uirecsession` JSON inspection
 - Local file selection without upload
+- Drag-and-drop file addition
+- Multiple audio-file selection
+- Editable track names and channel mappings
+- Browser `.uirecsession` download
 - Docker preview on host port 8080
 
 Remaining:

@@ -23,11 +23,11 @@
         </div>
         <span class="status" id="status">Waiting for a file</span>
       </div>
-      <label class="dropzone" for="file-input">
+      <label class="dropzone" id="dropzone" for="file-input">
         <span class="drop-icon">+</span>
-        <strong>Choose a file</strong>
-        <span>Supported preview: .uirecsession, WAV, FLAC, AIFF</span>
-        <input id="file-input" type="file" accept=".uirecsession,.json,.wav,.flac,.aif,.aiff,audio/*">
+        <strong>Choose or drop files</strong>
+        <span>Multiple audio files or one .uirecsession file</span>
+        <input id="file-input" type="file" multiple accept=".uirecsession,.json,.wav,.flac,.aif,.aiff,audio/*">
       </label>
       <p class="privacy">Files stay in this browser tab. No upload or server is involved.</p>
     </section>
@@ -39,7 +39,7 @@
           <h2 id="results-title">Session details</h2>
         </div>
       </div>
-      <div id="result-content" class="empty-state">Select a file to see its local metadata.</div>
+      <div id="result-content" class="empty-state">Select or drop files to build a local session.</div>
     </section>
   </main>
   <script src="app.js"></script>

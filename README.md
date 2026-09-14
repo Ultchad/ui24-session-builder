@@ -22,13 +22,16 @@ Implemented:
 - Unit and integration tests
 - CLI audio analysis and conversion commands
 - Static Web preview compatible with GitHub Pages
+- Browser drag-and-drop and multi-file selection
+- Editable track names and channel mappings
+- `.uirecsession` download from the browser workspace
 
 Not implemented yet:
 
 - External WAV, FLAC, and AIFF fixture corpus
 - `.uirecsession` generation
 - Folder and ZIP export
-- WebAssembly audio processing, Web editing, and Flutter applications
+- WebAssembly audio processing, advanced session export, and Flutter applications
 
 See [specifications/roadmap.md](specifications/roadmap.md) for the delivery status of every phase.
 
@@ -107,6 +110,10 @@ Automatically analyze:
 The current Rust audio-processing library extracts these values from WAV,
 FLAC, and AIFF sources held in memory. File-system adapters and user-facing
 file import are planned for later phases.
+
+The static Web preview can accept multiple local files and edit a session
+workspace without uploading files. Audio metadata decoding in the browser
+still waits for the Rust/WASM adapter.
 
 ---
 
