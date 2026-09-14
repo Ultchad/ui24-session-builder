@@ -6,10 +6,10 @@
 |-------|--------|-------|
 | Phase 1 | Partially complete | Preliminary format documentation exists; sample corpus and complete validation tooling remain outstanding. |
 | Phase 2 | Complete | Rust workspace, domain model, validation engine, and WAV/FLAC/AIFF metadata extraction are implemented and tested. |
-| Phase 3 | In progress | PCM-to-FLAC encoding is implemented and tested; container conversion and benchmarks remain. |
+| Phase 3 | In progress | In-memory container-to-FLAC conversion is implemented and tested; benchmarks and file output remain. |
 | Phases 4-9 | Planned | No production implementation yet. |
 
-The project currently has no UI, CLI, session generator, ZIP exporter, or FLAC conversion pipeline.
+The project currently has no UI, CLI, session generator, ZIP exporter, or file-system export adapter.
 
 ## Phase 1
 
@@ -64,15 +64,15 @@ Status: in progress.
 Implemented:
 
 - Pure-Rust PCM-to-FLAC encoding in memory
+- WAV, FLAC, and AIFF decoding before FLAC encoding
 - Validation of sample rate, channel count, bit depth, frame alignment, and sample ranges
 - Unit tests for successful encoding and invalid parameters
 
 Remaining:
 
-- Decode WAV and AIFF sources into PCM before encoding
-- Define conversion behavior for existing FLAC sources
+- Broader fixture coverage for WAV, FLAC, and AIFF conversion
 - Add performance benchmarks
-- Add fixture-based round-trip tests
+- Add file-system output adapters
 
 ---
 

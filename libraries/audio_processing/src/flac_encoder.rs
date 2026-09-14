@@ -1,9 +1,17 @@
+use crate::AudioFormat;
 use flacenc::bitsink::ByteSink;
 use flacenc::component::BitRepr;
 use flacenc::config::Encoder;
 use flacenc::encode_with_fixed_block_size;
 use flacenc::error::Verify;
 use flacenc::source::MemSource;
+use symphonia::core::audio::{AudioBufferRef, SampleBuffer};
+use symphonia::core::codecs::DecoderOptions;
+use symphonia::core::formats::FormatOptions;
+use symphonia::core::io::{MediaSourceStream, MediaSourceStreamOptions};
+use symphonia::core::meta::MetadataOptions;
+use symphonia::core::probe::Hint;
+use symphonia::default::{get_codecs, get_probe};
 
 const DEFAULT_BLOCK_SIZE: usize = 4096;
 
@@ -12,6 +20,94 @@ const DEFAULT_BLOCK_SIZE: usize = 4096;
 pub struct FlacEncoder;
 
 impl FlacEncoder {
+    /// Converts a supported audio container into a FLAC stream in memory.
+    ///
+    /// The source bytes are decoded without modifying the source. WAV, FLAC,
+    /// and AIFF inputs are accepted according to `format`.
+    pub fn convert_to_flac(
+        &self,
+        source: &[u8],
+        format: AudioFormat,
+    ) -> Result<Vec<u8>, AudioConversionError> {
+        if source.is_empty() {
+            return Err(AudioConversionError::InvalidInput(
+                "The audio source is empty.".to_owned(),
+            ));
+        }
+
+        let mut hint = Hint::new();
+        hint.with_extension(format.extension());
+        let stream = MediaSourceStream::new(
+            Box::new(std::io::Cursor::new(source.to_owned())),
+            MediaSourceStreamOptions::default(),
+        );
+        let mut probed = get_probe()
+            .format(
+                &hint,
+                stream,
+                &FormatOptions::default(),
+                &MetadataOptions::default(),
+            )
+            .map_err(|error| AudioConversionError::Decode(error.to_string()))?;
+        let track = probed.format.default_track().ok_or_else(|| {
+            AudioConversionError::InvalidInput("The audio source has no default track.".to_owned())
+        })?;
+        let track_id = track.id;
+        let codec_parameters = track.codec_params.clone();
+        let sample_rate = codec_parameters.sample_rate.ok_or_else(|| {
+            AudioConversionError::InvalidInput("The audio source has no sample rate.".to_owned())
+        })?;
+        let channels = codec_parameters
+            .channels
+            .ok_or_else(|| {
+                AudioConversionError::InvalidInput("The audio source has no channels.".to_owned())
+            })?
+            .count();
+        let bits_per_sample = codec_parameters.bits_per_sample.ok_or_else(|| {
+            AudioConversionError::InvalidInput("The audio source has no bit depth.".to_owned())
+        })?;
+        let mut decoder = get_codecs()
+            .make(&codec_parameters, &DecoderOptions::default())
+            .map_err(|error| AudioConversionError::Decode(error.to_string()))?;
+        let mut samples = Vec::new();
+
+        loop {
+            let packet = match probed.format.next_packet() {
+                Ok(packet) => packet,
+                Err(symphonia::core::errors::Error::ResetRequired) => {
+                    return Err(AudioConversionError::Decode(
+                        "The audio decoder requires a reset.".to_owned(),
+                    ));
+                }
+                Err(symphonia::core::errors::Error::IoError(error))
+                    if error.kind() == std::io::ErrorKind::UnexpectedEof =>
+                {
+                    break
+                }
+                Err(error) => return Err(AudioConversionError::Decode(error.to_string())),
+            };
+            if packet.track_id() != track_id {
+                continue;
+            }
+            let decoded = decoder
+                .decode(&packet)
+                .map_err(|error| AudioConversionError::Decode(error.to_string()))?;
+            append_samples(decoded, bits_per_sample, &mut samples);
+        }
+
+        self.encode_pcm(
+            &samples,
+            sample_rate,
+            u16::try_from(channels).map_err(|_| {
+                AudioConversionError::InvalidInput("The channel count is too large.".to_owned())
+            })?,
+            u16::try_from(bits_per_sample).map_err(|_| {
+                AudioConversionError::InvalidInput("The bit depth is too large.".to_owned())
+            })?,
+        )
+        .map_err(AudioConversionError::Encoding)
+    }
+
     /// Encodes signed, interleaved PCM samples into FLAC bytes.
     ///
     /// `samples` must contain complete frames: its length must be divisible by
@@ -43,6 +139,35 @@ impl FlacEncoder {
         Ok(sink.into_inner())
     }
 }
+
+fn append_samples(buffer: AudioBufferRef<'_>, bits_per_sample: u32, destination: &mut Vec<i32>) {
+    let mut sample_buffer = SampleBuffer::<i32>::new(buffer.capacity() as u64, *buffer.spec());
+    sample_buffer.copy_interleaved_ref(buffer);
+    let shift = 32_u32.saturating_sub(bits_per_sample);
+    destination.extend(sample_buffer.samples().iter().map(|sample| sample >> shift));
+}
+
+/// Errors returned while decoding an audio source before FLAC encoding.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AudioConversionError {
+    /// The source metadata or bytes are invalid.
+    InvalidInput(String),
+    /// The source could not be decoded.
+    Decode(String),
+    /// PCM encoding failed after decoding.
+    Encoding(FlacEncodingError),
+}
+
+impl std::fmt::Display for AudioConversionError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidInput(message) | Self::Decode(message) => formatter.write_str(message),
+            Self::Encoding(error) => error.fmt(formatter),
+        }
+    }
+}
+
+impl std::error::Error for AudioConversionError {}
 
 fn validate_parameters(
     samples: &[i32],
@@ -118,7 +243,7 @@ mod tests {
 
         let result = FlacEncoder.encode_pcm(&samples, 48_000, 1, 16);
 
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "conversion failed: {result:?}");
         assert!(result.unwrap().starts_with(b"fLaC"));
     }
 
@@ -150,5 +275,36 @@ mod tests {
             result,
             Err(FlacEncodingError::InvalidParameters(_))
         ));
+    }
+
+    #[test]
+    fn converts_pcm_wav_to_flac() {
+        let source = pcm_wav(&[0, 100, -100, 500, -500]);
+
+        let result = FlacEncoder.convert_to_flac(&source, AudioFormat::Wav);
+
+        assert!(result.is_ok(), "conversion failed: {result:?}");
+        assert!(result.unwrap().starts_with(b"fLaC"));
+    }
+
+    fn pcm_wav(samples: &[i16]) -> Vec<u8> {
+        let data_size = samples.len() * 2;
+        let mut wav = Vec::with_capacity(44 + data_size);
+        wav.extend_from_slice(b"RIFF");
+        wav.extend_from_slice(&(36_u32 + data_size as u32).to_le_bytes());
+        wav.extend_from_slice(b"WAVEfmt ");
+        wav.extend_from_slice(&16_u32.to_le_bytes());
+        wav.extend_from_slice(&1_u16.to_le_bytes());
+        wav.extend_from_slice(&1_u16.to_le_bytes());
+        wav.extend_from_slice(&48_000_u32.to_le_bytes());
+        wav.extend_from_slice(&96_000_u32.to_le_bytes());
+        wav.extend_from_slice(&2_u16.to_le_bytes());
+        wav.extend_from_slice(&16_u16.to_le_bytes());
+        wav.extend_from_slice(b"data");
+        wav.extend_from_slice(&(data_size as u32).to_le_bytes());
+        for sample in samples {
+            wav.extend_from_slice(&sample.to_le_bytes());
+        }
+        wav
     }
 }

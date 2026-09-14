@@ -17,7 +17,7 @@ Implemented:
 
 Not implemented yet:
 
-- WAV/AIFF-to-FLAC conversion pipeline
+- File-system FLAC output adapters
 - `.uirecsession` generation
 - Folder and ZIP export
 - CLI, WebAssembly, Web, and Flutter applications
@@ -76,9 +76,10 @@ file import are planned for later phases.
 
 Convert imported audio files to FLAC while preserving source characteristics whenever possible.
 
-Status: in progress for Phase 3. The current implementation encodes validated
-interleaved PCM samples to FLAC in memory. Container decoding and file-system
-output are not implemented yet.
+Status: in progress for Phase 3. The current implementation decodes supported
+audio containers and encodes validated PCM to FLAC in memory. File-system
+output adapters, benchmarks, and broader fixture coverage are not implemented
+yet.
 
 ---
 
