@@ -138,10 +138,14 @@ Implemented for development and testing:
 - `analyze <input>` for WAV, FLAC, AIFF, and MP3 metadata
 - `convert <input> <output>` for FLAC conversion
 - `create <input-dir> <output-dir>` for sorted multi-track session creation
+- `create <input-dir> <output.zip> --zip` for ZIP session creation
+
+The CLI ZIP workflow has been tested with the supplied WAV fixtures and
+produces root-level FLAC files plus `.uirecsession`.
 
 The CLI session workflow rejects mixed sample rates and exports prepared FLAC
-tracks plus `.uirecsession`; ZIP export and real-device compatibility tests
-remain outstanding.
+tracks plus `.uirecsession`, either as a folder or ZIP archive. Real-device
+compatibility tests remain outstanding.
 
 ---
 

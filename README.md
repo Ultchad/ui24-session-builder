@@ -129,12 +129,14 @@ Create a session folder from all supported audio files in a directory:
 
 ```bash
 cargo run -p ui24-session-builder -- create ./tracks ./output-session --name "Live Session"
+cargo run -p ui24-session-builder -- create ./tracks ./live-session.zip --name "Live Session" --zip
 ```
 
 The command analyzes every supported file, rejects mixed sample rates, converts
 the sources to FLAC, assigns channels in sorted filename order, and writes the
-`.uirecsession` file. ZIP export and compatibility validation against a real
-Ui24R remain future work.
+`.uirecsession` file. Use `--zip` to write a root-level FLAC and `.uirecsession`
+archive instead. Compatibility validation against a real Ui24R remains future
+work.
 
 ## Web Application
 
@@ -263,3 +265,12 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) and [system_overview.md](documentation/ar
 ## License
 
 Apache License Version 2.0
+
+## AI Vibe Coding
+
+Development is kept reproducible through documented commands, focused commits,
+and validation before each implementation milestone.
+
+The repository remains offline-first and platform-specific applications consume
+the shared Rust libraries.
+

@@ -5,7 +5,7 @@ use ui24_audio_processing::{
     AudioFormat, AudioMetadataReader, FlacEncoder, SymphoniaMetadataReader,
 };
 use ui24_core::{ChannelAssignment, Session, SessionMetadata, SessionTrack};
-use ui24_session_generator::generate_session_folder;
+use ui24_session_generator::{generate_session_folder, generate_session_zip};
 
 #[derive(Parser)]
 #[command(
@@ -41,6 +41,9 @@ enum Command {
         /// Optional session display name.
         #[arg(long)]
         name: Option<String>,
+        /// Write a ZIP archive instead of a session directory.
+        #[arg(long)]
+        zip: bool,
     },
 }
 
@@ -62,7 +65,8 @@ fn run(command_line: CommandLine) -> Result<(), String> {
             input_dir,
             output_dir,
             name,
-        } => create(&input_dir, &output_dir, name),
+            zip,
+        } => create(&input_dir, &output_dir, name, zip),
     }
 }
 
@@ -98,7 +102,12 @@ fn convert(input: &Path, output: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn create(input_dir: &Path, output_dir: &Path, name: Option<String>) -> Result<(), String> {
+fn create(
+    input_dir: &Path,
+    output_dir: &Path,
+    name: Option<String>,
+    as_zip: bool,
+) -> Result<(), String> {
     let mut inputs = std::fs::read_dir(input_dir)
         .map_err(|error| format!("cannot read {}: {error}", input_dir.display()))?
         .map(|entry| entry.map(|entry| entry.path()))
@@ -186,13 +195,22 @@ fn create(input_dir: &Path, output_dir: &Path, name: Option<String>) -> Result<(
             },
             tracks,
         };
-        generate_session_folder(&session, &converted_files, output_dir)
-            .map_err(|error| error.to_string())
+        if as_zip {
+            generate_session_zip(&session, &converted_files, output_dir)
+                .map_err(|error| error.to_string())
+        } else {
+            generate_session_folder(&session, &converted_files, output_dir)
+                .map_err(|error| error.to_string())
+        }
     })();
 
     let _ = std::fs::remove_dir_all(&staging_dir);
     result?;
-    println!("created session in {}", output_dir.display());
+    if as_zip {
+        println!("created session archive {}", output_dir.display());
+    } else {
+        println!("created session in {}", output_dir.display());
+    }
     Ok(())
 }
 
