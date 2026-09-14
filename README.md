@@ -144,6 +144,8 @@ The Web application is currently a static browser preview. It can be deployed to
 
 ### GitHub Pages
 
+Online web application: [https://ultchad.github.io/ui24-session-builder/](https://ultchad.github.io/ui24-session-builder/)
+
 The contents of `applications/web/` are static files and are deployed by
 `.github/workflows/deploy-pages.yml` when changes reach `main`:
 
