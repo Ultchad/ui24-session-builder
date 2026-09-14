@@ -282,6 +282,7 @@ impl std::error::Error for FlacEncodingError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{AudioMetadataReader, SymphoniaMetadataReader};
 
     #[test]
     fn encodes_mono_pcm_as_flac() {
@@ -360,6 +361,39 @@ mod tests {
     }
 
     #[test]
+    fn preserves_wav_metadata_in_flac_output() {
+        let samples: Vec<i16> = (0..4096).map(|index| (index % 512) as i16 - 256).collect();
+        let source = pcm_wav(&samples);
+        let encoded = FlacEncoder
+            .convert_to_flac(&source, AudioFormat::Wav)
+            .expect("WAV conversion should succeed");
+        let metadata = SymphoniaMetadataReader
+            .read_metadata(&encoded, AudioFormat::Flac)
+            .expect("encoded FLAC metadata should be readable");
+
+        assert_eq!(metadata.format, AudioFormat::Flac);
+        assert_eq!(metadata.sample_rate, 48_000);
+        assert_eq!(metadata.bit_depth, 16);
+        assert_eq!(metadata.channel_count, 1);
+        assert_eq!(metadata.duration_samples, samples.len() as u64);
+    }
+
+    #[test]
+    fn reads_aiff_metadata_before_conversion() {
+        let samples: Vec<i16> = (0..4096).map(|index| (index % 512) as i16 - 256).collect();
+        let source = pcm_aiff(&samples);
+        let metadata = SymphoniaMetadataReader
+            .read_metadata(&source, AudioFormat::Aiff)
+            .expect("AIFF metadata should be readable");
+
+        assert_eq!(metadata.format, AudioFormat::Aiff);
+        assert_eq!(metadata.sample_rate, 48_000);
+        assert_eq!(metadata.bit_depth, 16);
+        assert_eq!(metadata.channel_count, 1);
+        assert_eq!(metadata.duration_samples, samples.len() as u64);
+    }
+
+    #[test]
     fn writes_converted_wav_to_an_output_sink() {
         let source = pcm_wav(&[0, 100, -100]);
         let mut output = std::io::Cursor::new(Vec::new());
@@ -423,7 +457,7 @@ mod tests {
         aiff.extend_from_slice(&16_u16.to_be_bytes());
         aiff.extend_from_slice(&[0x40, 0x0e, 0xbb, 0x80, 0, 0, 0, 0, 0, 0]);
         aiff.extend_from_slice(b"SSND");
-        aiff.extend_from_slice(&((data_size + 8) as u32).to_be_bytes());
+        aiff.extend_from_slice(&(data_size as u32).to_be_bytes());
         aiff.extend_from_slice(&0_u32.to_be_bytes());
         aiff.extend_from_slice(&0_u32.to_be_bytes());
         for sample in samples {

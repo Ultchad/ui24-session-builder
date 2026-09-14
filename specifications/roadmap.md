@@ -6,8 +6,9 @@
 |-------|--------|-------|
 | Phase 1 | Partially complete | Preliminary format documentation exists; sample corpus and complete validation tooling remain outstanding. |
 | Phase 2 | Complete | Rust workspace, domain model, validation engine, and WAV/FLAC/AIFF metadata extraction are implemented and tested. |
-| Phase 3 | In progress | In-memory conversion, generic output, benchmark, and file output are implemented; fixture breadth remains. |
-| Phases 4-9 | Planned | No production implementation yet. |
+| Phase 3 | Complete | In-memory conversion, generic output, benchmark, file output, and generated-fixture tests are implemented. |
+| Phase 4 | Next | Session configuration and folder generation are not implemented yet. |
+| Phases 5-9 | Planned | No production implementation yet. |
 
 The project currently has no UI, CLI, session generator, ZIP exporter, or session-level export workflow.
 
@@ -59,7 +60,7 @@ Deliverables:
 - tests
 - performance benchmarks
 
-Status: in progress.
+Status: complete for the current conversion scope.
 
 Implemented:
 
@@ -72,10 +73,11 @@ Implemented:
 - Unit tests for successful encoding and invalid parameters
 - WAV-to-FLAC and FLAC-to-FLAC round-trip tests
 - AIFF-to-FLAC conversion test
+- WAV, FLAC, and AIFF metadata preservation tests
 
 Remaining:
 
-- Broader fixture coverage for WAV, FLAC, and AIFF conversion
+- External WAV, FLAC, and AIFF fixture corpus for compatibility hardening
 
 ---
 

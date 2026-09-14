@@ -18,11 +18,12 @@ Implemented:
 - Repeatable FLAC encoding benchmark
 - WAV-to-FLAC and FLAC-to-FLAC round-trip tests
 - AIFF-to-FLAC conversion test
+- Conversion metadata preservation tests
 - Unit and integration tests
 
 Not implemented yet:
 
-- Broader WAV, FLAC, and AIFF fixture coverage
+- External WAV, FLAC, and AIFF fixture corpus
 - `.uirecsession` generation
 - Folder and ZIP export
 - CLI, WebAssembly, Web, and Flutter applications
@@ -81,10 +82,11 @@ file import are planned for later phases.
 
 Convert imported audio files to FLAC while preserving source characteristics whenever possible.
 
-Status: in progress for Phase 3. The current implementation decodes supported
-audio containers and encodes validated PCM to FLAC in memory or to a destination
-file. Generic output and a benchmark are available. Broader fixture coverage is
-not implemented yet.
+Status: complete for the current in-memory and file-output scope. The
+implementation decodes supported audio containers and encodes validated PCM to
+FLAC in memory or to a destination file. Generic output, metadata preservation
+tests, and a benchmark are available. An external fixture corpus remains a
+future hardening task.
 
 Run the benchmark with:
 
