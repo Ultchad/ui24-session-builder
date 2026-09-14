@@ -268,9 +268,10 @@ Apache License Version 2.0
 
 ## AI Vibe Coding
 
+AI was used in the development of this project
+
 Development is kept reproducible through documented commands, focused commits,
 and validation before each implementation milestone.
 
 The repository remains offline-first and platform-specific applications consume
 the shared Rust libraries.
-
