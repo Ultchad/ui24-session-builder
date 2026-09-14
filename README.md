@@ -33,6 +33,7 @@ Still in development:
 - Full session export with generated audio files
 - ZIP export
 - Rust/WebAssembly audio processing in the browser
+- Browser microphone recording permission and capture
 - Desktop applications for Windows and Linux
 - Android and iOS applications
 
@@ -133,6 +134,11 @@ The contents of `applications/web/` are static files:
 Configure GitHub Pages to publish the `applications/web/` directory, or copy these files into the deployment directory used by the repository's future Pages workflow.
 
 The current preview supports local `.uirecsession` inspection, multiple local audio files, drag-and-drop, track editing, and local `.uirecsession` download. Browser-side audio decoding still requires the future Rust/WebAssembly adapter.
+
+The file picker intentionally lists explicit file extensions instead of the
+generic `audio/*` media type. This prevents Firefox Android from offering a
+microphone recording action. Microphone capture is not requested or used; it is
+deferred to a future, explicit feature.
 
 ### Docker Preview
 

@@ -10,7 +10,7 @@
 | Phase 4 | In progress | Validated `.uirecsession` JSON configuration generation is implemented; folder/audio/ZIP export remains. |
 | Phase 5 | In progress | Initial CLI audio analysis and conversion commands are implemented. |
 | Phase 6 | Planned | WebAssembly bindings are not implemented yet. |
-| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, and `.uirecsession` download are available; shared Rust/WASM processing is still pending. |
+| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, and `.uirecsession` download are available; shared Rust/WASM processing is still pending. Microphone capture is explicitly deferred. |
 | Phases 8-9 | Planned | No production implementation yet. |
 
 The project currently has no session folder exporter, ZIP exporter, WebAssembly processing layer, or session-level export workflow.
@@ -172,6 +172,11 @@ Implemented:
 - Numeric mapping editor with a fixed `i.` prefix, exported as `i.N`
 - Browser `.uirecsession` download
 - Docker preview on host port 8080
+
+The browser file picker deliberately avoids the generic `audio/*` accept type,
+so Firefox Android does not offer microphone recording. No microphone
+permission is requested. Recording may be considered later as a separate,
+explicit feature.
 
 Remaining:
 
