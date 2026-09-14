@@ -7,8 +7,8 @@
 | Phase 1 | Partially complete | Preliminary format documentation exists; sample corpus and complete validation tooling remain outstanding. |
 | Phase 2 | Complete | Rust workspace, domain model, validation engine, and WAV/FLAC/AIFF/MP3 metadata extraction are implemented and tested. |
 | Phase 3 | Complete | In-memory conversion, generic output, benchmark, file output, and generated-fixture tests are implemented. |
-| Phase 4 | In progress | Validated configuration and folder generation from prepared FLAC sources are implemented; CLI wiring and ZIP export remain. |
-| Phase 5 | In progress | Initial CLI audio analysis and conversion commands are implemented. |
+| Phase 4 | In progress | Validated configuration, folder generation, and CLI audio conversion are implemented; ZIP export and fixture validation remain. |
+| Phase 5 | In progress | CLI analysis, conversion, and session creation commands are implemented. |
 | Phase 6 | Planned | WebAssembly bindings are not implemented yet. |
 | Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, and `.uirecsession` download are available; shared Rust/WASM processing is still pending. Microphone capture is explicitly deferred. |
 | Phases 8-9 | Planned | No production implementation yet. |
@@ -111,8 +111,6 @@ Implemented:
 
 Remaining:
 
-- CLI session-creation command
-- Automatic audio conversion during session export
 - Export validation against real Ui24R fixtures
 - ZIP archive export
 
@@ -134,8 +132,11 @@ Implemented for development and testing:
 
 - `analyze <input>` for WAV, FLAC, AIFF, and MP3 metadata
 - `convert <input> <output>` for FLAC conversion
+- `create <input-dir> <output-dir>` for sorted multi-track session creation
 
-The `create` session workflow remains blocked on Phase 4 session generation.
+The CLI session workflow rejects mixed sample rates and exports prepared FLAC
+tracks plus `.uirecsession`; ZIP export and real-device compatibility tests
+remain outstanding.
 
 ---
 

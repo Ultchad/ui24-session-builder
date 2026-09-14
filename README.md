@@ -15,6 +15,7 @@ Implemented today:
 - WAV, FLAC, AIFF, and MP3 to FLAC conversion
 - Generic and native FLAC output
 - CLI audio analysis and conversion commands
+- CLI session creation from an audio directory
 - Static Web preview compatible with GitHub Pages
 - Browser drag-and-drop and multiple-file selection
 - Visible table headers, read-only filenames, editable track names, and numeric channel mappings
@@ -30,7 +31,7 @@ Still in development:
 
 - External audio fixture corpus
 - MP3 decoder hardening for malformed or truncated files
-- CLI session creation workflow
+- ZIP export
 - Full session export with automatic audio conversion
 - ZIP export
 - Rust/WebAssembly audio processing in the browser
@@ -118,7 +119,16 @@ Convert an audio file to FLAC:
 cargo run -p ui24-session-builder -- convert ./input.wav ./output.flac
 ```
 
-The `create` session-generation command is not available yet because the Phase 4 session generator is still under development.
+Create a session folder from all supported audio files in a directory:
+
+```bash
+cargo run -p ui24-session-builder -- create ./tracks ./output-session --name "Live Session"
+```
+
+The command analyzes every supported file, rejects mixed sample rates, converts
+the sources to FLAC, assigns channels in sorted filename order, and writes the
+`.uirecsession` file. ZIP export and compatibility validation against a real
+Ui24R remain future work.
 
 ## Web Application
 

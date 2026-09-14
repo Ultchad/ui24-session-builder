@@ -519,6 +519,8 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "ui24_audio_processing",
+ "ui24_core",
+ "ui24_session_generator",
 ]
 
 [[package]]
