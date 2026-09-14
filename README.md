@@ -4,6 +4,8 @@ UI24 Session Builder is an offline, open-source tool for preparing playback sess
 
 All processing is local. No account, cloud service, telemetry, analytics, or external server is required.
 
+Online Web Application: [https://ultchad.github.io/ui24-session-builder/](https://ultchad.github.io/ui24-session-builder/)
+
 ## Current Status
 
 Implemented today:
