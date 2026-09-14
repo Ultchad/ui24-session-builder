@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101820">
+  <title>UI24 Session Builder</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <p class="eyebrow">Offline Ui24R toolkit</p>
+      <h1>UI24 Session Builder</h1>
+      <p class="lede">Inspect a Ui24R session file or an audio source locally in your browser.</p>
+    </header>
+
+    <section class="workspace" aria-labelledby="workspace-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Local workspace</p>
+          <h2 id="workspace-title">Drop a file to inspect</h2>
+        </div>
+        <span class="status" id="status">Waiting for a file</span>
+      </div>
+      <label class="dropzone" for="file-input">
+        <span class="drop-icon">+</span>
+        <strong>Choose a file</strong>
+        <span>Supported preview: .uirecsession, WAV, FLAC, AIFF</span>
+        <input id="file-input" type="file" accept=".uirecsession,.json,.wav,.flac,.aif,.aiff,audio/*">
+      </label>
+      <p class="privacy">Files stay in this browser tab. No upload or server is involved.</p>
+    </section>
+
+    <section class="results" aria-labelledby="results-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Inspection</p>
+          <h2 id="results-title">Session details</h2>
+        </div>
+      </div>
+      <div id="result-content" class="empty-state">Select a file to see its local metadata.</div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

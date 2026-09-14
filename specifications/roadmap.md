@@ -8,9 +8,12 @@
 | Phase 2 | Complete | Rust workspace, domain model, validation engine, and WAV/FLAC/AIFF metadata extraction are implemented and tested. |
 | Phase 3 | Complete | In-memory conversion, generic output, benchmark, file output, and generated-fixture tests are implemented. |
 | Phase 4 | Next | Session configuration and folder generation are not implemented yet. |
-| Phases 5-9 | Planned | No production implementation yet. |
+| Phase 5 | In progress | Initial CLI audio analysis and conversion commands are implemented. |
+| Phase 6 | Planned | WebAssembly bindings are not implemented yet. |
+| Phase 7 | In progress | A static browser preview is available; shared Rust/WASM processing is still pending. |
+| Phases 8-9 | Planned | No production implementation yet. |
 
-The project currently has no UI, CLI, session generator, ZIP exporter, or session-level export workflow.
+The project currently has no session generator, ZIP exporter, WebAssembly processing layer, or session-level export workflow.
 
 ## Phase 1
 
@@ -103,6 +106,15 @@ Deliverables:
 ui24-session-builder create
 ```
 
+Status: in progress.
+
+Implemented for development and testing:
+
+- `analyze <input>` for WAV, FLAC, and AIFF metadata
+- `convert <input> <output>` for FLAC conversion
+
+The `create` session workflow remains blocked on Phase 4 session generation.
+
 ---
 
 ## Phase 6
@@ -125,6 +137,21 @@ Deliverables:
 - drag and drop
 - track mapping editor
 - ZIP generation
+
+Status: in progress for the static preview.
+
+Implemented:
+
+- Static browser page compatible with GitHub Pages
+- Local `.uirecsession` JSON inspection
+- Local file selection without upload
+- Docker preview on host port 8080
+
+Remaining:
+
+- Rust/WASM audio processing
+- Browser-side FLAC export
+- Drag-and-drop session editing
 
 ---
 

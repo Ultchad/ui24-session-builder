@@ -20,15 +20,47 @@ Implemented:
 - AIFF-to-FLAC conversion test
 - Conversion metadata preservation tests
 - Unit and integration tests
+- CLI audio analysis and conversion commands
+- Static Web preview compatible with GitHub Pages
 
 Not implemented yet:
 
 - External WAV, FLAC, and AIFF fixture corpus
 - `.uirecsession` generation
 - Folder and ZIP export
-- CLI, WebAssembly, Web, and Flutter applications
+- WebAssembly audio processing, Web editing, and Flutter applications
 
 See [specifications/roadmap.md](specifications/roadmap.md) for the delivery status of every phase.
+
+## Quick Tests
+
+Run the CLI help:
+
+```bash
+cargo run -p ui24-session-builder -- --help
+```
+
+Analyze or convert a local audio file:
+
+```bash
+cargo run -p ui24-session-builder -- analyze ./input.wav
+cargo run -p ui24-session-builder -- convert ./input.wav ./output.flac
+```
+
+Preview the static Web application in Docker:
+
+```bash
+docker compose -f docker-compose.web.yml up -d --build
+```
+
+Open `http://localhost:8080`. The container listens on port 80 internally,
+but only host port 8080 is published, so host ports 80 and 443 remain free.
+
+Stop it with:
+
+```bash
+docker compose -f docker-compose.web.yml down
+```
 
 ## Overview
 
