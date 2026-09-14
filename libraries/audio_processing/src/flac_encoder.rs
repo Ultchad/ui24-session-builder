@@ -234,7 +234,7 @@ fn validate_parameters(
             "The bit depth must be between 4 and 32 bits per sample.".to_owned(),
         ));
     }
-    if samples.len() % usize::from(channels) != 0 {
+    if !samples.len().is_multiple_of(usize::from(channels)) {
         return Err(FlacEncodingError::InvalidParameters(
             "The sample buffer must contain complete interleaved frames.".to_owned(),
         ));

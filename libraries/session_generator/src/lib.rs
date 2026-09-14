@@ -5,6 +5,8 @@ use serde::Serialize;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use ui24_core::{validate_session, Session, ValidationIssue};
+use zip::write::SimpleFileOptions;
+use zip::{CompressionMethod, ZipWriter};
 
 const UI24R_AUDIO_EXTENSION: &str = ".flac";
 
@@ -104,6 +106,73 @@ pub fn generate_session_folder(
     configuration.write_json(destination.join(".uirecsession"))
 }
 
+/// Generates a ZIP archive containing the Ui24R session and prepared FLAC files.
+///
+/// The archive contains the audio files at its root and a `.uirecsession` file
+/// at the root, matching the generated folder layout.
+pub fn generate_session_zip(
+    session: &Session,
+    source_files: &[PathBuf],
+    destination: impl AsRef<Path>,
+) -> Result<(), SessionGenerationError> {
+    let configuration = generate_configuration(session)?;
+    validate_source_files(session, source_files)?;
+    let output = std::fs::File::create(destination)
+        .map_err(|error| SessionGenerationError::Write(error.to_string()))?;
+    let mut archive = ZipWriter::new(output);
+    let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
+
+    for (track, source) in session.tracks.iter().zip(source_files) {
+        let filename = format!("{}.flac", filename_without_extension(&track.file_name));
+        archive
+            .start_file(filename, options)
+            .map_err(|error| SessionGenerationError::Archive(error.to_string()))?;
+        let mut input = std::fs::File::open(source)
+            .map_err(|error| SessionGenerationError::Write(error.to_string()))?;
+        std::io::copy(&mut input, &mut archive)
+            .map_err(|error| SessionGenerationError::Write(error.to_string()))?;
+    }
+
+    archive
+        .start_file(".uirecsession", options)
+        .map_err(|error| SessionGenerationError::Archive(error.to_string()))?;
+    let json = configuration.to_json()?;
+    std::io::Write::write_all(&mut archive, json.as_bytes())
+        .map_err(|error| SessionGenerationError::Write(error.to_string()))?;
+    archive
+        .finish()
+        .map_err(|error| SessionGenerationError::Archive(error.to_string()))?;
+    Ok(())
+}
+
+fn validate_source_files(
+    session: &Session,
+    source_files: &[PathBuf],
+) -> Result<(), SessionGenerationError> {
+    if source_files.len() != session.tracks.len() {
+        return Err(SessionGenerationError::SourceFiles(format!(
+            "expected {} FLAC source file(s), received {}",
+            session.tracks.len(),
+            source_files.len()
+        )));
+    }
+    for source in source_files {
+        if source.extension().and_then(|extension| extension.to_str()) != Some("flac") {
+            return Err(SessionGenerationError::SourceFiles(format!(
+                "source {} is not a FLAC file",
+                source.display()
+            )));
+        }
+        if !source.is_file() {
+            return Err(SessionGenerationError::SourceFiles(format!(
+                "source file does not exist: {}",
+                source.display()
+            )));
+        }
+    }
+    Ok(())
+}
+
 /// Generates a verified Ui24R configuration from a validated domain session.
 pub fn generate_configuration(
     session: &Session,
@@ -163,6 +232,8 @@ pub enum SessionGenerationError {
     Write(String),
     /// Source audio files do not match the session requirements.
     SourceFiles(String),
+    /// ZIP archive creation failed.
+    Archive(String),
 }
 
 impl fmt::Display for SessionGenerationError {
@@ -171,9 +242,10 @@ impl fmt::Display for SessionGenerationError {
             Self::InvalidSession(issues) => {
                 write!(formatter, "session is invalid ({} issue(s))", issues.len())
             }
-            Self::Serialization(message) | Self::Write(message) | Self::SourceFiles(message) => {
-                formatter.write_str(message)
-            }
+            Self::Serialization(message)
+            | Self::Write(message)
+            | Self::SourceFiles(message)
+            | Self::Archive(message) => formatter.write_str(message),
         }
     }
 }
@@ -275,6 +347,28 @@ mod tests {
             b"flac-one"
         );
         assert!(destination.join(".uirecsession").is_file());
+        std::fs::remove_dir_all(root).expect("test root should be removable");
+    }
+
+    #[test]
+    fn generates_zip_with_audio_and_configuration_at_archive_root() {
+        let root =
+            std::env::temp_dir().join(format!("ui24-session-generator-zip-{}", std::process::id()));
+        let source_one = root.join("source-one.flac");
+        let source_two = root.join("source-two.flac");
+        let archive_path = root.join("session.zip");
+        std::fs::create_dir_all(&root).expect("test root should be created");
+        std::fs::write(&source_one, b"flac-one").expect("source one should be written");
+        std::fs::write(&source_two, b"flac-two").expect("source two should be written");
+
+        generate_session_zip(&session(), &[source_one, source_two], &archive_path)
+            .expect("ZIP should be generated");
+
+        let archive = std::fs::File::open(&archive_path).expect("ZIP should be readable");
+        let mut archive = zip::ZipArchive::new(archive).expect("ZIP should be valid");
+        assert!(archive.by_name("03 - Vocal 1.flac").is_ok());
+        assert!(archive.by_name("04 - Vocal 2.flac").is_ok());
+        assert!(archive.by_name(".uirecsession").is_ok());
         std::fs::remove_dir_all(root).expect("test root should be removable");
     }
 

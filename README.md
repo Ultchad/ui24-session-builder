@@ -23,8 +23,8 @@ Implemented today:
 - Unit, integration, documentation, and benchmark checks
 
 The Phase 4 generator can now create a validated `.uirecsession` JSON
-configuration and a complete session folder from already-converted FLAC files.
-CLI wiring, automatic audio conversion during export, and ZIP export are still
+configuration, a complete session folder, or a ZIP archive from
+already-converted FLAC files. Automatic audio conversion during export remains
 pending.
 
 Still in development:
@@ -33,7 +33,6 @@ Still in development:
 - MP3 decoder hardening for malformed or truncated files
 - ZIP export
 - Full session export with automatic audio conversion
-- ZIP export
 - Rust/WebAssembly audio processing in the browser
 - Browser microphone recording permission and capture
 - Desktop applications for Windows and Linux
