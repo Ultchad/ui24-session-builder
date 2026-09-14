@@ -1,328 +1,235 @@
 # UI24 Session Builder
 
-Open-source cross-platform session generator for the Soundcraft Ui24R.
+UI24 Session Builder is an offline, open-source tool for preparing playback sessions for the Soundcraft Ui24R digital mixer. It is designed to replace the Windows-only UI Session Maker while sharing the same Rust processing core across CLI, Web, desktop, and mobile targets.
+
+All processing is local. No account, cloud service, telemetry, analytics, or external server is required.
 
 ## Current Status
 
-The project is currently a Rust workspace focused on the shared core library.
+Implemented today:
 
-Implemented:
-
-- Session domain model
-- Ui24R channel assignments from `i.0` to `i.21`
+- Rust workspace and shared core libraries
+- Session model and Ui24R channel assignments from `i.0` to `i.21`
 - Session validation rules
 - WAV, FLAC, and AIFF metadata extraction
-- PCM-to-FLAC encoding in memory
-- Generic `std::io::Write` output
-- Native file output through a destination path
-- Repeatable FLAC encoding benchmark
-- WAV-to-FLAC and FLAC-to-FLAC round-trip tests
-- AIFF-to-FLAC conversion test
-- Conversion metadata preservation tests
-- Unit and integration tests
+- WAV, FLAC, and AIFF to FLAC conversion
+- Generic and native FLAC output
 - CLI audio analysis and conversion commands
 - Static Web preview compatible with GitHub Pages
-- Browser drag-and-drop and multi-file selection
+- Browser drag-and-drop and multiple-file selection
 - Editable track names and channel mappings
-- `.uirecsession` download from the browser workspace
+- Browser `.uirecsession` download
+- Unit, integration, documentation, and benchmark checks
 
-Not implemented yet:
+Still in development:
 
-- External WAV, FLAC, and AIFF fixture corpus
-- `.uirecsession` generation
-- Folder and ZIP export
-- WebAssembly audio processing, advanced session export, and Flutter applications
+- External audio fixture corpus
+- Complete `.uirecsession` generation and session export workflow
+- ZIP export
+- Rust/WebAssembly audio processing in the browser
+- Desktop applications for Windows and Linux
+- Android and iOS applications
 
-See [specifications/roadmap.md](specifications/roadmap.md) for the delivery status of every phase.
+See [specifications/roadmap.md](specifications/roadmap.md) for the detailed phase status.
 
-## Quick Tests
+## Installation
 
-Run the CLI help:
+### Debian 13 / Linux development tools
+
+Install the verified Rust toolchain with:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y rustc cargo rustfmt rust-clippy
+```
+
+Verify the tools:
+
+```bash
+rustc --version
+cargo --version
+cargo fmt --version
+cargo clippy --version
+```
+
+The repository currently uses the stable Rust channel. The development environment and verified commands are documented in [development_environment.md](documentation/developer_guides/development_environment.md).
+
+### Docker
+
+Docker and Docker Compose are optional and are used to preview the static Web application. The preview publishes only host port `8080`; host ports `80` and `443` are not used.
+
+## Build And Test
+
+Run the complete Rust validation from the repository root:
+
+```bash
+cargo fmt --all -- --check
+cargo check --workspace
+cargo test --workspace
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+```
+
+Run the Phase 3 benchmark:
+
+```bash
+cargo bench -p ui24_audio_processing --bench flac_encoding
+```
+
+## CLI
+
+The CLI is the fastest way to test local audio processing.
+
+### Compile
+
+```bash
+cargo build -p ui24-session-builder --release
+```
+
+The binary is generated at:
+
+```text
+target/release/ui24-session-builder
+```
+
+### Run Without Installing
 
 ```bash
 cargo run -p ui24-session-builder -- --help
 ```
 
-Analyze or convert a local audio file:
+Analyze a WAV, FLAC, or AIFF file:
 
 ```bash
 cargo run -p ui24-session-builder -- analyze ./input.wav
+```
+
+Convert an audio file to FLAC:
+
+```bash
 cargo run -p ui24-session-builder -- convert ./input.wav ./output.flac
 ```
 
-Preview the static Web application in Docker:
+The `create` session-generation command is not available yet because the Phase 4 session generator is still under development.
+
+## Web Application
+
+The Web application is currently a static browser preview. It can be deployed to GitHub Pages because it does not require a backend.
+
+### GitHub Pages
+
+The contents of `applications/web/` are static files:
+
+- `index.html`
+- `app.js`
+- `styles.css`
+
+Configure GitHub Pages to publish the `applications/web/` directory, or copy these files into the deployment directory used by the repository's future Pages workflow.
+
+The current preview supports local `.uirecsession` inspection, multiple local audio files, drag-and-drop, track editing, and local `.uirecsession` download. Browser-side audio decoding still requires the future Rust/WebAssembly adapter.
+
+### Docker Preview
+
+Build and start the Web preview:
 
 ```bash
 docker compose -f docker-compose.web.yml up -d --build
 ```
 
-Open `http://localhost:8080`. The container listens on port 80 internally,
-but only host port 8080 is published, so host ports 80 and 443 remain free.
+Open:
 
-Stop it with:
+```text
+http://localhost:8080
+```
+
+The container listens on port `80` internally, but Docker publishes only host port `8080`. Ports `80` and `443` on the server remain available for other services.
+
+Stop the preview:
 
 ```bash
 docker compose -f docker-compose.web.yml down
 ```
 
-## Overview
+## Desktop Applications
 
-UI24 Session Builder is a fully offline application that creates playback sessions compatible with the Soundcraft Ui24R digital mixer.
+### Windows
 
-The project is intended to replace the Windows-only "UI Session Maker" application while providing support for:
+The Windows desktop application is planned and is not available yet. The current Rust core is platform-independent, but no Windows packaging or desktop UI has been implemented.
 
-- Linux
-- Windows
-- macOS
-- Web browsers
-- Android
-- iOS
+### Linux
 
-The application works entirely on the user's device.
+The Linux desktop application is planned and is not available yet. On Linux, use the CLI or the Docker/Web preview while the desktop target is being developed.
 
-No cloud services, accounts, subscriptions, telemetry, analytics, or external servers are required.
+## Android
 
----
+The Android application is planned and is not available yet. The future application will use Flutter and `flutter_rust_bridge` to consume the shared Rust core.
 
-# Features
+## iOS
 
-## Audio Import
+The iOS application is also planned and is not available yet. It is listed here because it is part of the long-term cross-platform target.
 
-Import supported audio files:
+## Supported Audio Formats
+
+The current Rust audio-processing library supports:
 
 - WAV
 - FLAC
 - AIFF
 
-Additional formats may be supported in future versions.
-
----
-
-## Audio Analysis
-
-Automatically analyze:
+It can extract:
 
 - Sample rate
 - Bit depth
 - Channel count
 - Duration
 
-The current Rust audio-processing library extracts these values from WAV,
-FLAC, and AIFF sources held in memory. File-system adapters and user-facing
-file import are planned for later phases.
+The FLAC conversion pipeline preserves the source files and writes generated output to memory, a generic writer, or a destination file.
 
-The static Web preview can accept multiple local files and edit a session
-workspace without uploading files. Audio metadata decoding in the browser
-still waits for the Rust/WASM adapter.
+## Official Ui24R Example
 
----
+The repository includes an official Windows UI Session Maker example under `tmp/example/Multitrack/`. Its `.uirecsession` file documents a 15-track session with:
 
-## FLAC Conversion
+- Sample rate: `48000`
+- Duration: `340` seconds
+- Channel mappings from `i.0` to `i.14`
+- FLAC audio extension
 
-Convert imported audio files to FLAC while preserving source characteristics whenever possible.
+The format remains partially reverse-engineered. Unknown fields and compatibility assumptions are documented in [ui24r_session_format.md](documentation/format_specifications/ui24r_session_format.md).
 
-Status: complete for the current in-memory and file-output scope. The
-implementation decodes supported audio containers and encodes validated PCM to
-FLAC in memory or to a destination file. Generic output, metadata preservation
-tests, and a benchmark are available. An external fixture corpus remains a
-future hardening task.
-
-Run the benchmark with:
-
-```bash
-cargo bench -p ui24_audio_processing --bench flac_encoding
-```
-
----
-
-## Ui24R Session Generation
-
-Generate:
-
-- FLAC audio files
-- Ui24R session configuration
-- Valid folder structure
-
----
-
-## Session Validation
-
-Verify:
-
-- Track count
-- Sample rate consistency
-- Channel assignments
-- File integrity
-
-before exporting.
-
----
-
-## Export Options
-
-Export as:
-
-- Folder
-- ZIP archive
-
----
-
-# Project Goals
-
-- Replace the official Windows-only tool
-- Work on all major platforms
-- Preserve compatibility with Ui24R
-- Provide a modern user interface
-- Remain usable offline
-- Be easy to maintain
-- Be friendly to open-source contributors
-
----
-
-# Supported Platforms
-
-| Platform | Status |
-|-----------|---------|
-| Linux | Planned |
-| Windows | Planned |
-| macOS | Planned |
-| Web Browser | Planned |
-| Android | Planned |
-| iOS | Planned |
-
----
-
-# Technology Stack
-
-## Core Engine
-
-Rust
-
-Responsibilities:
-
-- Audio processing
-- Metadata extraction
-- Session generation
-- Validation
-
----
-
-## Command Line Interface
-
-Rust + Clap
-
----
-
-## Web Application
-
-- React
-- TypeScript
-- Vite
-- WebAssembly (Rust)
-
----
-
-## Desktop and Mobile
-
-- Flutter
-- flutter_rust_bridge
-
----
-
-# Project Structure
+## Project Structure
 
 ```text
 ui24-session-builder/
-
-├── applications/
-├── libraries/
-├── documentation/
-├── specifications/
-├── tests/
-└── tools/
+├── applications/cli/       Rust command-line application
+├── applications/web/       Static GitHub Pages-compatible Web preview
+├── libraries/               Shared Rust libraries
+├── tests/                   Integration tests
+├── documentation/           Architecture and developer documentation
+└── specifications/          Requirements and roadmap
 ```
 
-See:
+See [ARCHITECTURE.md](ARCHITECTURE.md) and [system_overview.md](documentation/architecture/system_overview.md) for architectural details.
 
-```text
-ARCHITECTURE.md
-```
+## Documentation
 
-for complete technical details.
+- [Project guidelines](PROJECT_GUIDELINES.md)
+- [Architecture](ARCHITECTURE.md)
+- [Dependency rules](documentation/architecture/dependency_rules.md)
+- [Development environment](documentation/developer_guides/development_environment.md)
+- [Ui24R session format](documentation/format_specifications/ui24r_session_format.md)
+- [Functional requirements](specifications/functional_requirements.md)
+- [Roadmap](specifications/roadmap.md)
+- [Contributing](CONTRIBUTING.md)
 
----
+## Principles
 
-# Documentation
+- Documentation first
+- Offline first
+- Shared business logic
+- No duplicated platform logic
+- No source-file modification during conversion
+- No UI business logic
 
-Main documents:
-
-- PROJECT_GUIDELINES.md
-- ARCHITECTURE.md
-- documentation/format_specifications/ui24r_session_format.md
-- specifications/functional_requirements.md
-- specifications/roadmap.md
-
----
-
-# Current Reverse Engineering Status
-
-The Ui24R session format has been partially documented from official UI Session Maker exports.
-
-Current known characteristics:
-
-- Session configuration stored in `.uirecsession`
-- JSON format
-- FLAC audio files
-- Maximum 22 tracks
-
-See:
-
-```text
-documentation/format_specifications/ui24r_session_format.md
-```
-
----
-
-# Development Philosophy
-
-The project follows:
-
-- Documentation First
-- Offline First
-- Single Source Of Truth
-- Shared Business Logic
-- Clean Architecture
-
-Business logic is implemented only once inside the Rust core library.
-
-Platform-specific applications merely expose the functionality.
-
----
-
-# Localization
-
-UI text will support:
-
-- English
-- French
-- Spanish (future)
-
-All user-facing strings must be translatable.
-
----
-
-# Contributing
-
-Please read:
-
-```text
-CONTRIBUTING.md
-```
-
-before submitting pull requests.
-
----
-
-# License
+## License
 
 Apache License Version 2.0
