@@ -1,0 +1,11 @@
+[package]
+name = "ui24_core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+ui24_audio_processing = { path = "../audio_processing" }
+
+[lib]
+path = "src/lib.rs"
