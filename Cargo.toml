@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+members = [
+    "applications/cli",
+    "libraries/audio_processing",
+    "libraries/session_generator",
+    "libraries/ui24_core",
+    "tests/integration",
+]

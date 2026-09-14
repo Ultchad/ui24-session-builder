@@ -1,0 +1,15 @@
+[package]
+name = "ui24-session-builder"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+clap = { version = "=4.5.4", features = ["derive"] }
+ui24_audio_processing = { path = "../../libraries/audio_processing" }
+ui24_core = { path = "../../libraries/ui24_core" }
+ui24_session_generator = { path = "../../libraries/session_generator" }
+
+[[bin]]
+name = "ui24-session-builder"
+path = "src/main.rs"

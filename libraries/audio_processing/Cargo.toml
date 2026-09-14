@@ -1,0 +1,17 @@
+[package]
+name = "ui24_audio_processing"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+symphonia = { version = "=0.5.4", default-features = false, features = ["aiff", "flac", "mp3", "pcm", "wav"] }
+flacenc = { version = "=0.5.1", default-features = false }
+
+[lib]
+path = "src/lib.rs"
+
+[[bench]]
+name = "flac_encoding"
+path = "benches/flac_encoding.rs"
+harness = false

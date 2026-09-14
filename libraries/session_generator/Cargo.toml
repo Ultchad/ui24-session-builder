@@ -1,0 +1,18 @@
+[package]
+name = "ui24_session_generator"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ui24_core = { path = "../ui24_core" }
+zip = { version = "=2.4.2", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+ui24_audio_processing = { path = "../audio_processing" }
+zip = { version = "=2.4.2", default-features = false, features = ["deflate"] }
+
+[lib]
+path = "src/lib.rs"

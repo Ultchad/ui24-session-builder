@@ -1,0 +1,9 @@
+[package]
+name = "ui24_integration_tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dev-dependencies]
+ui24_core = { path = "../../libraries/ui24_core" }
+ui24_audio_processing = { path = "../../libraries/audio_processing" }

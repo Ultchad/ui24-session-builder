@@ -1,0 +1,41 @@
+# Rust build outputs
+**/target/
+debug/
+release/
+
+# Rust-generated files
+**/*.rs.bk
+*.pdb
+**/mutants.out*/
+rustc-ice-*.txt
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Editor and IDE files
+*.swp
+*.swo
+*~
+.idea/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Future web application outputs and dependencies
+node_modules/
+dist/
+.vite/
+
+# Future Flutter outputs and local tooling
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+
+# Keep Cargo.lock: this repository builds applications and reproducible workspace tests.
+tmp/
