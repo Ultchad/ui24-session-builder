@@ -1,5 +1,16 @@
 # Development Roadmap
 
+## Current Status
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| Phase 1 | Partially complete | Preliminary format documentation exists; sample corpus and complete validation tooling remain outstanding. |
+| Phase 2 | Complete | Rust workspace, domain model, validation engine, and WAV/FLAC/AIFF metadata extraction are implemented and tested. |
+| Phase 3 | In progress | PCM-to-FLAC encoding is implemented and tested; container conversion and benchmarks remain. |
+| Phases 4-9 | Planned | No production implementation yet. |
+
+The project currently has no UI, CLI, session generator, ZIP exporter, or FLAC conversion pipeline.
+
 ## Phase 1
 
 Reverse engineering
@@ -9,6 +20,8 @@ Deliverables:
 - session format documentation
 - sample collection
 - format validation
+
+Current status: partially complete. The format specification contains verified observations, but a representative sample corpus and executable format validator are still required.
 
 ---
 
@@ -22,6 +35,18 @@ Deliverables:
 - session model
 - validation engine
 
+Status: complete.
+
+Implemented in the Rust workspace:
+
+- `Session`, `SessionMetadata`, `SessionTrack`, and `ChannelAssignment`
+- 22-track capacity validation
+- Empty-session validation
+- Channel-conflict validation
+- Session and track sample-rate validation
+- WAV, FLAC, and AIFF metadata extraction through Symphonia
+- Unit, integration, Clippy, and documentation checks
+
 ---
 
 ## Phase 3
@@ -33,6 +58,21 @@ Deliverables:
 - audio conversion
 - tests
 - performance benchmarks
+
+Status: in progress.
+
+Implemented:
+
+- Pure-Rust PCM-to-FLAC encoding in memory
+- Validation of sample rate, channel count, bit depth, frame alignment, and sample ranges
+- Unit tests for successful encoding and invalid parameters
+
+Remaining:
+
+- Decode WAV and AIFF sources into PCM before encoding
+- Define conversion behavior for existing FLAC sources
+- Add performance benchmarks
+- Add fixture-based round-trip tests
 
 ---
 

@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 symphonia = { version = "=0.5.4", default-features = false, features = ["aiff", "flac", "wav"] }
+flacenc = { version = "=0.5.1", default-features = false }
 
 [lib]
 path = "src/lib.rs"

@@ -2,6 +2,28 @@
 
 Open-source cross-platform session generator for the Soundcraft Ui24R.
 
+## Current Status
+
+The project is currently a Rust workspace focused on the shared core library.
+
+Implemented:
+
+- Session domain model
+- Ui24R channel assignments from `i.0` to `i.21`
+- Session validation rules
+- WAV, FLAC, and AIFF metadata extraction
+- PCM-to-FLAC encoding in memory
+- Unit and integration tests
+
+Not implemented yet:
+
+- WAV/AIFF-to-FLAC conversion pipeline
+- `.uirecsession` generation
+- Folder and ZIP export
+- CLI, WebAssembly, Web, and Flutter applications
+
+See [specifications/roadmap.md](specifications/roadmap.md) for the delivery status of every phase.
+
 ## Overview
 
 UI24 Session Builder is a fully offline application that creates playback sessions compatible with the Soundcraft Ui24R digital mixer.
@@ -44,11 +66,19 @@ Automatically analyze:
 - Channel count
 - Duration
 
+The current Rust audio-processing library extracts these values from WAV,
+FLAC, and AIFF sources held in memory. File-system adapters and user-facing
+file import are planned for later phases.
+
 ---
 
 ## FLAC Conversion
 
 Convert imported audio files to FLAC while preserving source characteristics whenever possible.
+
+Status: in progress for Phase 3. The current implementation encodes validated
+interleaved PCM samples to FLAC in memory. Container decoding and file-system
+output are not implemented yet.
 
 ---
 
