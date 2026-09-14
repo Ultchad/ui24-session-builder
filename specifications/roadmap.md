@@ -15,6 +15,10 @@
 
 The project currently has no ZIP exporter, WebAssembly processing layer, or CLI session-creation workflow.
 
+Development tooling now documents matching Rust compiler, `rust-src`,
+rust-analyzer, rustfmt, and Clippy installation for Debian stable and
+backports.
+
 ## Phase 1
 
 Reverse engineering

@@ -50,6 +50,7 @@ Install the verified Rust toolchain with:
 ```bash
 sudo apt-get update
 sudo apt-get install -y rustc cargo rustfmt rust-clippy
+sudo apt-get install -y rust-src rust-analyzer
 ```
 
 Verify the tools:
@@ -62,6 +63,10 @@ cargo clippy --version
 ```
 
 The repository currently uses the stable Rust channel. The development environment and verified commands are documented in [development_environment.md](documentation/developer_guides/development_environment.md).
+
+`rust-src` is required by rust-analyzer. On Debian 13, use the matching
+backports Rust packages when the stable rust-analyzer package is too old for
+the installed VS Code extension.
 
 ### Docker
 
