@@ -162,7 +162,7 @@ function isSessionFile(name) {
 }
 
 function isAudioFile(file) {
-  return /\.(wav|flac|aif|aiff)$/i.test(file.name);
+  return /\.(wav|flac|aif|aiff|mp3)$/i.test(file.name);
 }
 
 function stripExtension(name) {

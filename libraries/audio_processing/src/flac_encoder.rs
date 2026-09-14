@@ -54,7 +54,7 @@ impl FlacEncoder {
     /// Converts a supported audio container into a FLAC stream in memory.
     ///
     /// The source bytes are decoded without modifying the source. WAV, FLAC,
-    /// and AIFF inputs are accepted according to `format`.
+    /// AIFF, and MP3 inputs are accepted according to `format`.
     pub fn convert_to_flac(
         &self,
         source: &[u8],
@@ -94,9 +94,7 @@ impl FlacEncoder {
                 AudioConversionError::InvalidInput("The audio source has no channels.".to_owned())
             })?
             .count();
-        let bits_per_sample = codec_parameters.bits_per_sample.ok_or_else(|| {
-            AudioConversionError::InvalidInput("The audio source has no bit depth.".to_owned())
-        })?;
+        let bits_per_sample = codec_parameters.bits_per_sample.unwrap_or(16);
         let mut decoder = get_codecs()
             .make(&codec_parameters, &DecoderOptions::default())
             .map_err(|error| AudioConversionError::Decode(error.to_string()))?;

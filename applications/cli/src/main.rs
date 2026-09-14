@@ -20,10 +20,10 @@ struct CommandLine {
 enum Command {
     /// Print metadata extracted from an audio file.
     Analyze {
-        /// WAV, FLAC, or AIFF input file.
+        /// WAV, FLAC, AIFF, or MP3 input file.
         input: PathBuf,
     },
-    /// Convert a WAV, FLAC, or AIFF file to FLAC.
+    /// Convert a WAV, FLAC, AIFF, or MP3 file to FLAC.
     Convert {
         /// Source audio file.
         input: PathBuf,
@@ -59,7 +59,11 @@ fn analyze(input: &Path) -> Result<(), String> {
 
     println!("format: {}", metadata.format);
     println!("sample rate: {} Hz", metadata.sample_rate);
-    println!("bit depth: {} bits", metadata.bit_depth);
+    if metadata.bit_depth == 0 {
+        println!("bit depth: unknown (compressed source)");
+    } else {
+        println!("bit depth: {} bits", metadata.bit_depth);
+    }
     println!("channels: {}", metadata.channel_count);
     println!("duration samples: {}", metadata.duration_samples);
     println!("duration seconds: {:.3}", metadata.duration_seconds());

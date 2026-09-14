@@ -7,6 +7,8 @@ pub enum AudioFormat {
     Wav,
     /// Free Lossless Audio Codec.
     Flac,
+    /// MPEG Audio Layer III.
+    Mp3,
     /// Audio Interchange File Format.
     Aiff,
 }
@@ -23,6 +25,7 @@ impl AudioFormat {
         {
             "wav" => Some(Self::Wav),
             "flac" => Some(Self::Flac),
+            "mp3" => Some(Self::Mp3),
             "aif" | "aiff" => Some(Self::Aiff),
             _ => None,
         }
@@ -32,6 +35,7 @@ impl AudioFormat {
         match self {
             Self::Wav => "wav",
             Self::Flac => "flac",
+            Self::Mp3 => "mp3",
             Self::Aiff => "aiff",
         }
     }
@@ -42,6 +46,7 @@ impl fmt::Display for AudioFormat {
         let name = match self {
             Self::Wav => "WAV",
             Self::Flac => "FLAC",
+            Self::Mp3 => "MP3",
             Self::Aiff => "AIFF",
         };
         formatter.write_str(name)
@@ -59,19 +64,21 @@ mod tests {
             AudioFormat::from_extension(".FLAC"),
             Some(AudioFormat::Flac)
         );
+        assert_eq!(AudioFormat::from_extension("MP3"), Some(AudioFormat::Mp3));
         assert_eq!(AudioFormat::from_extension("Aif"), Some(AudioFormat::Aiff));
         assert_eq!(AudioFormat::from_extension("aiff"), Some(AudioFormat::Aiff));
     }
 
     #[test]
     fn rejects_unknown_extensions() {
-        assert_eq!(AudioFormat::from_extension("mp3"), None);
+        assert_eq!(AudioFormat::from_extension("ogg"), None);
     }
 
     #[test]
     fn displays_ui24r_audio_format_names() {
         assert_eq!(AudioFormat::Wav.to_string(), "WAV");
         assert_eq!(AudioFormat::Flac.to_string(), "FLAC");
+        assert_eq!(AudioFormat::Mp3.to_string(), "MP3");
         assert_eq!(AudioFormat::Aiff.to_string(), "AIFF");
     }
 }

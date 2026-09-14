@@ -11,8 +11,8 @@ Implemented today:
 - Rust workspace and shared core libraries
 - Session model and Ui24R channel assignments from `i.0` to `i.21`
 - Session validation rules
-- WAV, FLAC, and AIFF metadata extraction
-- WAV, FLAC, and AIFF to FLAC conversion
+- WAV, FLAC, AIFF, and MP3 metadata extraction
+- WAV, FLAC, AIFF, and MP3 to FLAC conversion
 - Generic and native FLAC output
 - CLI audio analysis and conversion commands
 - Static Web preview compatible with GitHub Pages
@@ -24,6 +24,7 @@ Implemented today:
 Still in development:
 
 - External audio fixture corpus
+- MP3 decoder hardening for malformed or truncated files
 - Complete `.uirecsession` generation and session export workflow
 - Full session export with generated audio files
 - ZIP export
@@ -99,7 +100,7 @@ target/release/ui24-session-builder
 cargo run -p ui24-session-builder -- --help
 ```
 
-Analyze a WAV, FLAC, or AIFF file:
+Analyze a WAV, FLAC, AIFF, or MP3 file:
 
 ```bash
 cargo run -p ui24-session-builder -- analyze ./input.wav
@@ -176,6 +177,7 @@ The current Rust audio-processing library supports:
 - WAV
 - FLAC
 - AIFF
+- MP3
 
 It can extract:
 
@@ -184,7 +186,7 @@ It can extract:
 - Channel count
 - Duration
 
-The FLAC conversion pipeline preserves the source files and writes generated output to memory, a generic writer, or a destination file.
+The FLAC conversion pipeline preserves the source files and writes generated output to memory, a generic writer, or a destination file. MP3 sources are decoded and exported as 16-bit FLAC; MP3 does not expose a PCM bit depth, so the CLI reports it as unknown.
 
 ## Official Ui24R Example
 

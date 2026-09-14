@@ -6,7 +6,7 @@ use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
 use symphonia::default::get_probe;
 
-/// Reads WAV, FLAC, and AIFF metadata using Symphonia.
+/// Reads WAV, FLAC, AIFF, and MP3 metadata using Symphonia.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SymphoniaMetadataReader;
 
@@ -48,11 +48,7 @@ impl AudioMetadataReader for SymphoniaMetadataReader {
                 "The audio source does not declare a sample rate.".to_owned(),
             )
         })?;
-        let bit_depth = codec_parameters.bits_per_sample.ok_or_else(|| {
-            AudioProcessingError::InvalidMetadata(
-                "The audio source does not declare a bit depth.".to_owned(),
-            )
-        })?;
+        let bit_depth = codec_parameters.bits_per_sample.unwrap_or(0);
         let channel_count = codec_parameters
             .channels
             .ok_or_else(|| {

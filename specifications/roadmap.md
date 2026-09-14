@@ -5,7 +5,7 @@
 | Phase | Status | Notes |
 |-------|--------|-------|
 | Phase 1 | Partially complete | Preliminary format documentation exists; sample corpus and complete validation tooling remain outstanding. |
-| Phase 2 | Complete | Rust workspace, domain model, validation engine, and WAV/FLAC/AIFF metadata extraction are implemented and tested. |
+| Phase 2 | Complete | Rust workspace, domain model, validation engine, and WAV/FLAC/AIFF/MP3 metadata extraction are implemented and tested. |
 | Phase 3 | Complete | In-memory conversion, generic output, benchmark, file output, and generated-fixture tests are implemented. |
 | Phase 4 | Next | Session configuration and folder generation are not implemented yet. |
 | Phase 5 | In progress | Initial CLI audio analysis and conversion commands are implemented. |
@@ -48,7 +48,7 @@ Implemented in the Rust workspace:
 - Empty-session validation
 - Channel-conflict validation
 - Session and track sample-rate validation
-- WAV, FLAC, and AIFF metadata extraction through Symphonia
+- WAV, FLAC, AIFF, and MP3 metadata extraction through Symphonia
 - Unit, integration, Clippy, and documentation checks
 
 ---
@@ -68,7 +68,7 @@ Status: complete for the current conversion scope.
 Implemented:
 
 - Pure-Rust PCM-to-FLAC encoding in memory
-- WAV, FLAC, and AIFF decoding before FLAC encoding
+- WAV, FLAC, AIFF, and MP3 decoding before FLAC encoding
 - Generic `std::io::Write` output adapter
 - Native file output adapter through a destination path
 - Repeatable PCM-to-FLAC benchmark
@@ -80,7 +80,8 @@ Implemented:
 
 Remaining:
 
-- External WAV, FLAC, and AIFF fixture corpus for compatibility hardening
+- External WAV, FLAC, AIFF, and MP3 fixture corpus for compatibility hardening
+- MP3 malformed or truncated input hardening
 
 ---
 
@@ -110,7 +111,7 @@ Status: in progress.
 
 Implemented for development and testing:
 
-- `analyze <input>` for WAV, FLAC, and AIFF metadata
+- `analyze <input>` for WAV, FLAC, AIFF, and MP3 metadata
 - `convert <input> <output>` for FLAC conversion
 
 The `create` session workflow remains blocked on Phase 4 session generation.

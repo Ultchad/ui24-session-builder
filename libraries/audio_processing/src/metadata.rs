@@ -8,7 +8,8 @@ pub struct AudioMetadata {
     pub format: AudioFormat,
     /// Sample rate in hertz.
     pub sample_rate: u32,
-    /// Bits per audio sample.
+    /// Bits per audio sample, or `0` when the source codec does not expose a
+    /// PCM bit depth, as with MP3.
     pub bit_depth: u16,
     /// Number of interleaved audio channels.
     pub channel_count: u16,
