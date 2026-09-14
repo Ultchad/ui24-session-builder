@@ -1,5 +1,5 @@
 use crate::AudioFormat;
-use flacenc::bitsink::ByteSink;
+use flacenc::bitsink::{BitSink, ByteSink};
 use flacenc::component::BitRepr;
 use flacenc::config::Encoder;
 use flacenc::encode_with_fixed_block_size;
@@ -115,14 +115,21 @@ impl FlacEncoder {
                 {
                     break
                 }
-                Err(error) => return Err(AudioConversionError::Decode(error.to_string())),
+                Err(error) if error.to_string() == "end of stream" => break,
+                Err(error) => {
+                    return Err(AudioConversionError::Decode(format!(
+                        "next_packet: {error}"
+                    )))
+                }
             };
             if packet.track_id() != track_id {
                 continue;
             }
-            let decoded = decoder
-                .decode(&packet)
-                .map_err(|error| AudioConversionError::Decode(error.to_string()))?;
+            let decoded = match decoder.decode(&packet) {
+                Ok(decoded) => decoded,
+                Err(error) if error.to_string() == "end of stream" => break,
+                Err(error) => return Err(AudioConversionError::Decode(format!("decode: {error}"))),
+            };
             append_samples(decoded, bits_per_sample, &mut samples);
         }
 
@@ -163,9 +170,14 @@ impl FlacEncoder {
             .map_err(|error| FlacEncodingError::Configuration(format!("{error:?}")))?;
         let stream = encode_with_fixed_block_size(&config, source, DEFAULT_BLOCK_SIZE)
             .map_err(|error| FlacEncodingError::Encoding(error.to_string()))?;
+        stream
+            .verify()
+            .map_err(|error| FlacEncodingError::Encoding(format!("{error:?}")))?;
         let mut sink = ByteSink::new();
         stream
             .write(&mut sink)
+            .map_err(|error| FlacEncodingError::Encoding(error.to_string()))?;
+        sink.align_to_byte()
             .map_err(|error| FlacEncodingError::Encoding(error.to_string()))?;
         Ok(sink.into_inner())
     }
@@ -319,6 +331,21 @@ mod tests {
 
         assert!(result.is_ok(), "conversion failed: {result:?}");
         assert!(result.unwrap().starts_with(b"fLaC"));
+    }
+
+    #[test]
+    fn converts_generated_flac_to_flac() {
+        let samples: Vec<i16> = (0..4096).map(|index| (index % 512) as i16 - 256).collect();
+        let source = pcm_wav(&samples);
+        let first_conversion = FlacEncoder
+            .convert_to_flac(&source, AudioFormat::Wav)
+            .expect("WAV conversion should succeed");
+
+        let second_conversion = FlacEncoder
+            .convert_to_flac(&first_conversion, AudioFormat::Flac)
+            .expect("FLAC conversion should succeed");
+
+        assert!(second_conversion.starts_with(b"fLaC"));
     }
 
     #[test]

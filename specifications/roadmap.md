@@ -70,10 +70,10 @@ Implemented:
 - Repeatable PCM-to-FLAC benchmark
 - Validation of sample rate, channel count, bit depth, frame alignment, and sample ranges
 - Unit tests for successful encoding and invalid parameters
+- WAV-to-FLAC and FLAC-to-FLAC round-trip tests
 
 Remaining:
 
-- Broader fixture coverage for WAV, FLAC, and AIFF conversion
 - Broader fixture coverage for WAV, FLAC, and AIFF conversion
 
 ---

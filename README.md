@@ -16,11 +16,12 @@ Implemented:
 - Generic `std::io::Write` output
 - Native file output through a destination path
 - Repeatable FLAC encoding benchmark
+- WAV-to-FLAC and FLAC-to-FLAC round-trip tests
 - Unit and integration tests
 
 Not implemented yet:
 
-- File-system FLAC output adapters
+- Broader WAV, FLAC, and AIFF fixture coverage
 - `.uirecsession` generation
 - Folder and ZIP export
 - CLI, WebAssembly, Web, and Flutter applications
