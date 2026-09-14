@@ -76,11 +76,20 @@ function editableTracks() {
   const tracks = workspace.session ? workspace.session.files : workspace.files.map((file) => file.name);
   const names = workspace.session?.names ?? tracks.map(stripExtension);
   const mappings = workspace.session?.mapping ?? tracks.map((_, index) => `i.${index}`);
-  return `<div class="track-list">${tracks.map((name, index) => `
+  return `<div class="track-list">
+    <div class="track track-header" role="row">
+      <span role="columnheader">#</span>
+      <span role="columnheader">Filename</span>
+      <span role="columnheader">Track name</span>
+      <span role="columnheader">Mapping</span>
+      <span role="columnheader">Action</span>
+    </div>
+    ${tracks.map((name, index) => `
     <div class="track" data-index="${index}">
       <span class="track-index">${String(index + 1).padStart(2, "0")}</span>
+      <input class="track-filename" value="${escapeAttribute(name)}" aria-label="Track ${index + 1} filename" readonly>
       <input class="track-name" data-field="name" value="${escapeAttribute(names[index] ?? name)}" aria-label="Track ${index + 1} name">
-      <input class="track-channel" data-field="mapping" value="${escapeAttribute(mappings[index] ?? `i.${index}`)}" aria-label="Track ${index + 1} channel">
+      <input class="track-channel" data-field="mapping" type="number" min="0" max="21" step="1" value="${escapeAttribute(mappingNumber(mappings[index], index))}" aria-label="Track ${index + 1} mapping number">
       <button class="remove-track" type="button" title="Remove track" data-remove="${index}">Remove</button>
     </div>`).join("")}</div>`;
 }
@@ -113,7 +122,14 @@ function bindEditor() {
 
 function updateSessionFromEditor() {
   const names = [...result.querySelectorAll('[data-field="name"]')].map((field) => field.value);
-  const mapping = [...result.querySelectorAll('[data-field="mapping"]')].map((field) => field.value);
+  const mapping = [...result.querySelectorAll('[data-field="mapping"]')].map((field, index) => {
+    const value = Number.parseInt(field.value, 10);
+    if (!Number.isInteger(value) || value < 0 || value > 21) {
+      field.value = String(index);
+      return `i.${index}`;
+    }
+    return `i.${value}`;
+  });
   if (workspace.session) {
     workspace.session.names = names;
     workspace.session.mapping = mapping;
@@ -151,6 +167,11 @@ function isAudioFile(file) {
 
 function stripExtension(name) {
   return name.replace(/\.[^.]+$/, "");
+}
+
+function mappingNumber(mapping, fallback) {
+  const value = String(mapping ?? "").replace(/^i\./, "");
+  return /^\d+$/.test(value) ? value : String(fallback);
 }
 
 function renderAudio(file) {

@@ -148,6 +148,8 @@ Implemented:
 - Drag-and-drop file addition
 - Multiple audio-file selection
 - Editable track names and channel mappings
+- Read-only filename display matching the `files` field
+- Numeric mapping editor exported as `i.N`
 - Browser `.uirecsession` download
 - Docker preview on host port 8080
 
@@ -155,7 +157,6 @@ Remaining:
 
 - Rust/WASM audio processing
 - Browser-side FLAC export
-- Drag-and-drop session editing
 
 ---
 

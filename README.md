@@ -17,7 +17,7 @@ Implemented today:
 - CLI audio analysis and conversion commands
 - Static Web preview compatible with GitHub Pages
 - Browser drag-and-drop and multiple-file selection
-- Editable track names and channel mappings
+- Read-only filenames with editable track names and numeric channel mappings
 - Browser `.uirecsession` download
 - Unit, integration, documentation, and benchmark checks
 
@@ -25,6 +25,7 @@ Still in development:
 
 - External audio fixture corpus
 - Complete `.uirecsession` generation and session export workflow
+- Full session export with generated audio files
 - ZIP export
 - Rust/WebAssembly audio processing in the browser
 - Desktop applications for Windows and Linux
