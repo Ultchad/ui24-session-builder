@@ -1,5 +1,7 @@
 # UI24 Session Builder
 
+Online Web Application: [https://ultchad.github.io/ui24-session-builder/](https://ultchad.github.io/ui24-session-builder/)
+
 UI24 Session Builder is an offline, open-source tool for preparing playback sessions for the Soundcraft Ui24R digital mixer. It is designed to replace the Windows-only UI Session Maker while sharing the same Rust processing core across CLI, Web, desktop, and mobile targets.
 
 All processing is local. No account, cloud service, telemetry, analytics, or external server is required.
