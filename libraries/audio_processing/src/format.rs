@@ -27,6 +27,14 @@ impl AudioFormat {
             _ => None,
         }
     }
+
+    pub(crate) fn extension(self) -> &'static str {
+        match self {
+            Self::Wav => "wav",
+            Self::Flac => "flac",
+            Self::Aiff => "aiff",
+        }
+    }
 }
 
 impl fmt::Display for AudioFormat {
@@ -37,5 +45,33 @@ impl fmt::Display for AudioFormat {
             Self::Aiff => "AIFF",
         };
         formatter.write_str(name)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn recognizes_supported_extensions_case_insensitively() {
+        assert_eq!(AudioFormat::from_extension("wav"), Some(AudioFormat::Wav));
+        assert_eq!(
+            AudioFormat::from_extension(".FLAC"),
+            Some(AudioFormat::Flac)
+        );
+        assert_eq!(AudioFormat::from_extension("Aif"), Some(AudioFormat::Aiff));
+        assert_eq!(AudioFormat::from_extension("aiff"), Some(AudioFormat::Aiff));
+    }
+
+    #[test]
+    fn rejects_unknown_extensions() {
+        assert_eq!(AudioFormat::from_extension("mp3"), None);
+    }
+
+    #[test]
+    fn displays_ui24r_audio_format_names() {
+        assert_eq!(AudioFormat::Wav.to_string(), "WAV");
+        assert_eq!(AudioFormat::Flac.to_string(), "FLAC");
+        assert_eq!(AudioFormat::Aiff.to_string(), "AIFF");
     }
 }

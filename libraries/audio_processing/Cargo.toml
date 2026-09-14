@@ -4,5 +4,8 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[dependencies]
+symphonia = { version = "=0.5.4", default-features = false, features = ["aiff", "flac", "wav"] }
+
 [lib]
 path = "src/lib.rs"
