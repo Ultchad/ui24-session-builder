@@ -20,6 +20,22 @@ const DEFAULT_BLOCK_SIZE: usize = 4096;
 pub struct FlacEncoder;
 
 impl FlacEncoder {
+    /// Converts audio and writes the resulting FLAC stream to an output sink.
+    ///
+    /// The sink can be a file, memory buffer, network-independent application
+    /// stream, or any other type implementing [`std::io::Write`].
+    pub fn convert_to_flac_into<W: std::io::Write>(
+        &self,
+        source: &[u8],
+        format: AudioFormat,
+        output: &mut W,
+    ) -> Result<(), AudioConversionError> {
+        let encoded = self.convert_to_flac(source, format)?;
+        output
+            .write_all(&encoded)
+            .map_err(|error| AudioConversionError::Write(error.to_string()))
+    }
+
     /// Converts a supported audio container into a FLAC stream in memory.
     ///
     /// The source bytes are decoded without modifying the source. WAV, FLAC,
@@ -156,6 +172,8 @@ pub enum AudioConversionError {
     Decode(String),
     /// PCM encoding failed after decoding.
     Encoding(FlacEncodingError),
+    /// The encoded stream could not be written to the output sink.
+    Write(String),
 }
 
 impl std::fmt::Display for AudioConversionError {
@@ -163,6 +181,7 @@ impl std::fmt::Display for AudioConversionError {
         match self {
             Self::InvalidInput(message) | Self::Decode(message) => formatter.write_str(message),
             Self::Encoding(error) => error.fmt(formatter),
+            Self::Write(message) => formatter.write_str(message),
         }
     }
 }
@@ -285,6 +304,18 @@ mod tests {
 
         assert!(result.is_ok(), "conversion failed: {result:?}");
         assert!(result.unwrap().starts_with(b"fLaC"));
+    }
+
+    #[test]
+    fn writes_converted_wav_to_an_output_sink() {
+        let source = pcm_wav(&[0, 100, -100]);
+        let mut output = std::io::Cursor::new(Vec::new());
+
+        FlacEncoder
+            .convert_to_flac_into(&source, AudioFormat::Wav, &mut output)
+            .expect("conversion should write to the sink");
+
+        assert!(output.get_ref().starts_with(b"fLaC"));
     }
 
     fn pcm_wav(samples: &[i16]) -> Vec<u8> {

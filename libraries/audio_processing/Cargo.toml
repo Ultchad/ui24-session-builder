@@ -10,3 +10,8 @@ flacenc = { version = "=0.5.1", default-features = false }
 
 [lib]
 path = "src/lib.rs"
+
+[[bench]]
+name = "flac_encoding"
+path = "benches/flac_encoding.rs"
+harness = false

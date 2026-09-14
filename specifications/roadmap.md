@@ -65,13 +65,14 @@ Implemented:
 
 - Pure-Rust PCM-to-FLAC encoding in memory
 - WAV, FLAC, and AIFF decoding before FLAC encoding
+- Generic `std::io::Write` output adapter
 - Validation of sample rate, channel count, bit depth, frame alignment, and sample ranges
 - Unit tests for successful encoding and invalid parameters
+- A repeatable PCM-to-FLAC benchmark command
 
 Remaining:
 
 - Broader fixture coverage for WAV, FLAC, and AIFF conversion
-- Add performance benchmarks
 - Add file-system output adapters
 
 ---

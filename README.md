@@ -79,7 +79,8 @@ Convert imported audio files to FLAC while preserving source characteristics whe
 Status: in progress for Phase 3. The current implementation decodes supported
 audio containers and encodes validated PCM to FLAC in memory. File-system
 output adapters, benchmarks, and broader fixture coverage are not implemented
-yet.
+yet. A generic `std::io::Write` output API is available, and the encoder
+benchmark can be run with `cargo bench -p ui24_audio_processing`.
 
 ---
 
