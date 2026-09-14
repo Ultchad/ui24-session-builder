@@ -16,13 +16,14 @@ Implemented today:
 - Generic and native FLAC output
 - CLI audio analysis and conversion commands
 - CLI session creation from an audio directory
+- Official Ui24R fixture schema validation
 - Static Web preview compatible with GitHub Pages
 - Browser drag-and-drop and multiple-file selection
 - Visible table headers, read-only filenames, editable track names, and numeric channel mappings
 - Browser `.uirecsession` download
 - Unit, integration, documentation, and benchmark checks
 
-The Phase 4 generator can now create a validated `.uirecsession` JSON
+The Phase 4 generator can now create and validate a `.uirecsession` JSON
 configuration, a complete session folder, or a ZIP archive from
 already-converted FLAC files. Automatic audio conversion during export remains
 pending.
@@ -32,6 +33,7 @@ Still in development:
 - External audio fixture corpus
 - MP3 decoder hardening for malformed or truncated files
 - ZIP export
+- Real Ui24R fixture validation is now included when the official example is present
 - Full session export with automatic audio conversion
 - Rust/WebAssembly audio processing in the browser
 - Browser microphone recording permission and capture

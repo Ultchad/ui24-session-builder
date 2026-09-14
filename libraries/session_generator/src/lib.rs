@@ -255,6 +255,7 @@ impl std::error::Error for SessionGenerationError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::Value;
     use ui24_audio_processing::{AudioFormat, AudioMetadata};
     use ui24_core::{ChannelAssignment, SessionMetadata, SessionTrack};
 
@@ -393,5 +394,30 @@ mod tests {
             Err(SessionGenerationError::SourceFiles(_))
         ));
         std::fs::remove_dir_all(root).expect("test root should be removable");
+    }
+
+    #[test]
+    fn validates_official_ui24r_fixture_schema() {
+        let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tmp/example/Multitrack/Metallica - Enter the sandman/.uirecsession");
+        if !fixture.is_file() {
+            return;
+        }
+
+        let json = std::fs::read_to_string(fixture).expect("official fixture should be readable");
+        let value: Value = serde_json::from_str(&json).expect("official fixture should be JSON");
+        assert_eq!(value["complete"], true);
+        assert_eq!(value["ext"], ".flac");
+        assert_eq!(value["sampleRate"], 48_000);
+        assert_eq!(value["lengthSamples"], 16_320_000_u64);
+        assert_eq!(value["lengthSeconds"], 340);
+        assert_eq!(value["files"].as_array().expect("files array").len(), 15);
+        assert_eq!(value["names"].as_array().expect("names array").len(), 15);
+        assert_eq!(
+            value["mapping"].as_array().expect("mapping array").len(),
+            15
+        );
+        assert_eq!(value["mapping"][0], "i.0");
+        assert_eq!(value["mapping"][14], "i.14");
     }
 }
