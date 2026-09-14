@@ -13,6 +13,9 @@ Implemented:
 - Session validation rules
 - WAV, FLAC, and AIFF metadata extraction
 - PCM-to-FLAC encoding in memory
+- Generic `std::io::Write` output
+- Native file output through a destination path
+- Repeatable FLAC encoding benchmark
 - Unit and integration tests
 
 Not implemented yet:
@@ -77,10 +80,15 @@ file import are planned for later phases.
 Convert imported audio files to FLAC while preserving source characteristics whenever possible.
 
 Status: in progress for Phase 3. The current implementation decodes supported
-audio containers and encodes validated PCM to FLAC in memory. File-system
-output adapters, benchmarks, and broader fixture coverage are not implemented
-yet. A generic `std::io::Write` output API is available, and the encoder
-benchmark can be run with `cargo bench -p ui24_audio_processing`.
+audio containers and encodes validated PCM to FLAC in memory or to a destination
+file. Generic output and a benchmark are available. Broader fixture coverage is
+not implemented yet.
+
+Run the benchmark with:
+
+```bash
+cargo bench -p ui24_audio_processing --bench flac_encoding
+```
 
 ---
 

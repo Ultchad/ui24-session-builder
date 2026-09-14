@@ -20,6 +20,21 @@ const DEFAULT_BLOCK_SIZE: usize = 4096;
 pub struct FlacEncoder;
 
 impl FlacEncoder {
+    /// Converts audio and writes the resulting FLAC stream to a file.
+    ///
+    /// The destination is created or truncated. Source bytes are never
+    /// modified.
+    pub fn convert_to_flac_file<P: AsRef<std::path::Path>>(
+        &self,
+        source: &[u8],
+        format: AudioFormat,
+        destination: P,
+    ) -> Result<(), AudioConversionError> {
+        let mut output = std::fs::File::create(destination)
+            .map_err(|error| AudioConversionError::Write(error.to_string()))?;
+        self.convert_to_flac_into(source, format, &mut output)
+    }
+
     /// Converts audio and writes the resulting FLAC stream to an output sink.
     ///
     /// The sink can be a file, memory buffer, network-independent application
@@ -316,6 +331,23 @@ mod tests {
             .expect("conversion should write to the sink");
 
         assert!(output.get_ref().starts_with(b"fLaC"));
+    }
+
+    #[test]
+    fn writes_converted_wav_to_a_file() {
+        let source = pcm_wav(&[0, 100, -100]);
+        let destination = std::env::temp_dir().join(format!(
+            "ui24-session-builder-test-{}.flac",
+            std::process::id()
+        ));
+
+        FlacEncoder
+            .convert_to_flac_file(&source, AudioFormat::Wav, &destination)
+            .expect("conversion should write a file");
+        let encoded = std::fs::read(&destination).expect("encoded file should be readable");
+        std::fs::remove_file(destination).expect("test file should be removable");
+
+        assert!(encoded.starts_with(b"fLaC"));
     }
 
     fn pcm_wav(samples: &[i16]) -> Vec<u8> {
