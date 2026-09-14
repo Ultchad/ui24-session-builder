@@ -71,6 +71,7 @@ Implemented:
 - Validation of sample rate, channel count, bit depth, frame alignment, and sample ranges
 - Unit tests for successful encoding and invalid parameters
 - WAV-to-FLAC and FLAC-to-FLAC round-trip tests
+- AIFF-to-FLAC conversion test
 
 Remaining:
 

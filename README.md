@@ -17,6 +17,7 @@ Implemented:
 - Native file output through a destination path
 - Repeatable FLAC encoding benchmark
 - WAV-to-FLAC and FLAC-to-FLAC round-trip tests
+- AIFF-to-FLAC conversion test
 - Unit and integration tests
 
 Not implemented yet:

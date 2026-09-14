@@ -349,6 +349,17 @@ mod tests {
     }
 
     #[test]
+    fn converts_pcm_aiff_to_flac() {
+        let samples: Vec<i16> = (0..4096).map(|index| (index % 512) as i16 - 256).collect();
+        let source = pcm_aiff(&samples);
+
+        let result = FlacEncoder.convert_to_flac(&source, AudioFormat::Aiff);
+
+        assert!(result.is_ok(), "conversion failed: {result:?}");
+        assert!(result.unwrap().starts_with(b"fLaC"));
+    }
+
+    #[test]
     fn writes_converted_wav_to_an_output_sink() {
         let source = pcm_wav(&[0, 100, -100]);
         let mut output = std::io::Cursor::new(Vec::new());
@@ -396,5 +407,28 @@ mod tests {
             wav.extend_from_slice(&sample.to_le_bytes());
         }
         wav
+    }
+
+    fn pcm_aiff(samples: &[i16]) -> Vec<u8> {
+        let data_size = samples.len() * 2;
+        let form_size = 46 + data_size;
+        let mut aiff = Vec::with_capacity(8 + form_size);
+        aiff.extend_from_slice(b"FORM");
+        aiff.extend_from_slice(&(form_size as u32).to_be_bytes());
+        aiff.extend_from_slice(b"AIFF");
+        aiff.extend_from_slice(b"COMM");
+        aiff.extend_from_slice(&18_u32.to_be_bytes());
+        aiff.extend_from_slice(&1_u16.to_be_bytes());
+        aiff.extend_from_slice(&(samples.len() as u32).to_be_bytes());
+        aiff.extend_from_slice(&16_u16.to_be_bytes());
+        aiff.extend_from_slice(&[0x40, 0x0e, 0xbb, 0x80, 0, 0, 0, 0, 0, 0]);
+        aiff.extend_from_slice(b"SSND");
+        aiff.extend_from_slice(&((data_size + 8) as u32).to_be_bytes());
+        aiff.extend_from_slice(&0_u32.to_be_bytes());
+        aiff.extend_from_slice(&0_u32.to_be_bytes());
+        for sample in samples {
+            aiff.extend_from_slice(&sample.to_be_bytes());
+        }
+        aiff
     }
 }
