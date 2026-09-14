@@ -11,7 +11,8 @@
 | Phase 5 | In progress | CLI analysis, conversion, and session creation commands are implemented. |
 | Phase 6 | Planned | WebAssembly bindings are not implemented yet. |
 | Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, and `.uirecsession` download are available; shared Rust/WASM processing is still pending. Microphone capture is explicitly deferred. |
-| Phases 8-9 | Planned | No production implementation yet. |
+| Phase 8 | In progress | GitHub Pages deployment workflow is configured for `main`. |
+| Phase 9 | Planned | No Flutter application implementation yet. |
 
 The project currently has no WebAssembly processing layer or real-device compatibility validation workflow.
 
@@ -205,6 +206,20 @@ Deliverables:
 
 - public demo
 - offline support
+
+Status: in progress.
+
+Implemented:
+
+- GitHub Actions deployment workflow
+- Static publication of `applications/web/`
+- Deployment on pushes to `main`
+- Manual workflow dispatch
+
+Remaining:
+
+- Enable GitHub Pages with `Source: GitHub Actions` in repository settings
+- Confirm the public Pages URL after the first deployment
 
 ---
 

@@ -144,13 +144,16 @@ The Web application is currently a static browser preview. It can be deployed to
 
 ### GitHub Pages
 
-The contents of `applications/web/` are static files:
+The contents of `applications/web/` are static files and are deployed by
+`.github/workflows/deploy-pages.yml` when changes reach `main`:
 
 - `index.html`
 - `app.js`
 - `styles.css`
 
-Configure GitHub Pages to publish the `applications/web/` directory, or copy these files into the deployment directory used by the repository's future Pages workflow.
+In GitHub repository settings, select `Settings > Pages > Source: GitHub
+Actions`. The workflow publishes `applications/web/` directly; no Node.js
+build or backend is required.
 
 The current preview supports local `.uirecsession` inspection, multiple local audio files, drag-and-drop, track editing, and local `.uirecsession` download. Browser-side audio decoding still requires the future Rust/WebAssembly adapter.
 
