@@ -272,6 +272,27 @@ flutter_rust_bridge
 ```
 
 to reach business functions.
+---
+
+# Ui24R Export Artifacts
+
+A generated session consists of:
+
+```text
+Session Name/
+├── Audio Track 01.flac
+├── Audio Track 02.flac
+├── ...
+└── .uirecsession
+```
+
+The `.uirecsession` file is the central configuration file used by the Ui24R playback system.
+
+Its structure is defined in:
+
+```text
+documentation/format_specifications/ui24r_session_format.md
+```
 
 ---
 

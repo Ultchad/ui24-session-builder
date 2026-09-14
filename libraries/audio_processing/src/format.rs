@@ -10,7 +10,11 @@ pub enum AudioFormat {
 
 impl AudioFormat {
     pub fn from_extension(extension: &str) -> Option<Self> {
-        match extension.trim_start_matches('.').to_ascii_lowercase().as_str() {
+        match extension
+            .trim_start_matches('.')
+            .to_ascii_lowercase()
+            .as_str()
+        {
             "wav" => Some(Self::Wav),
             "flac" => Some(Self::Flac),
             "aif" | "aiff" => Some(Self::Aiff),

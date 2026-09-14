@@ -1,5 +1,7 @@
 use ui24_audio_processing::{AudioFormat, AudioMetadata};
-use ui24_core::{validate_session, AudioTrack, ChannelAssignment, Session, SessionMetadata, ValidationIssueKind};
+use ui24_core::{
+    validate_session, AudioTrack, ChannelAssignment, Session, SessionMetadata, ValidationIssueKind,
+};
 
 fn track(name: &str, channel: u8, sample_rate: u32) -> AudioTrack {
     AudioTrack {
@@ -36,31 +38,44 @@ fn rejects_empty_sessions() {
 
 #[test]
 fn rejects_duplicate_channel_assignments() {
-    let issues = validate_session(&session(vec![track("lead", 0, 48_000), track("backing", 0, 48_000)]));
+    let issues = validate_session(&session(vec![
+        track("lead", 0, 48_000),
+        track("backing", 0, 48_000),
+    ]));
 
-    assert!(issues.iter().any(|issue| issue.kind == ValidationIssueKind::ChannelConflict));
+    assert!(issues
+        .iter()
+        .any(|issue| issue.kind == ValidationIssueKind::ChannelConflict));
 }
 
 #[test]
 fn rejects_more_than_twenty_two_tracks() {
-    let tracks = (0..23)
+    let mut tracks: Vec<_> = (0..22)
         .map(|channel| track(&format!("track-{channel}"), channel, 48_000))
         .collect();
+    tracks.push(track("track-22", 0, 48_000));
     let issues = validate_session(&session(tracks));
 
-    assert!(issues.iter().any(|issue| issue.kind == ValidationIssueKind::TooManyTracks));
+    assert!(issues
+        .iter()
+        .any(|issue| issue.kind == ValidationIssueKind::TooManyTracks));
 }
 
 #[test]
 fn rejects_mismatched_sample_rates() {
     let issues = validate_session(&session(vec![track("lead", 0, 44_100)]));
 
-    assert!(issues.iter().any(|issue| issue.kind == ValidationIssueKind::SampleRateMismatch));
+    assert!(issues
+        .iter()
+        .any(|issue| issue.kind == ValidationIssueKind::SampleRateMismatch));
 }
 
 #[test]
 fn accepts_a_valid_session() {
-    let issues = validate_session(&session(vec![track("lead", 0, 48_000), track("backing", 1, 48_000)]));
+    let issues = validate_session(&session(vec![
+        track("lead", 0, 48_000),
+        track("backing", 1, 48_000),
+    ]));
 
     assert!(issues.is_empty());
 }

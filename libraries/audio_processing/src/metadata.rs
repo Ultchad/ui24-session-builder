@@ -17,7 +17,11 @@ impl AudioMetadata {
 }
 
 pub trait AudioMetadataReader {
-    fn read_metadata(&self, source: &[u8], format: AudioFormat) -> Result<AudioMetadata, AudioProcessingError>;
+    fn read_metadata(
+        &self,
+        source: &[u8],
+        format: AudioFormat,
+    ) -> Result<AudioMetadata, AudioProcessingError>;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

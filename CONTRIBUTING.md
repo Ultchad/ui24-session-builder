@@ -9,6 +9,7 @@ Please read:
 - README.md
 - PROJECT_GUIDELINES.md
 - ARCHITECTURE.md
+- documentation/developer_guides/development_environment.md
 
 ## Development Principles
 

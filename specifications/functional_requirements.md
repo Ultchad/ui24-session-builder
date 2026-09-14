@@ -52,3 +52,18 @@ The system shall support:
 
 - folder export
 - ZIP export
+
+## Ui24R Session Generation
+
+The system shall generate:
+
+- FLAC audio files
+- One `.uirecsession` file
+
+The generated `.uirecsession` file shall conform to the documented Ui24R session schema.
+
+Reference:
+
+```text
+documentation/format_specifications/ui24r_session_format.md
+```

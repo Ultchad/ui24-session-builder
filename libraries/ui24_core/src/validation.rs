@@ -50,7 +50,9 @@ pub fn validate_session(session: &Session) -> Vec<ValidationIssue> {
                 Some(track_index),
                 format!(
                     "Track {} conflicts with track {} on channel {}.",
-                    track.file_name, previous_track + 1, track.channel
+                    track.file_name,
+                    previous_track + 1,
+                    track.channel
                 ),
             ));
         }
