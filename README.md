@@ -21,11 +21,15 @@ Implemented today:
 - Browser `.uirecsession` download
 - Unit, integration, documentation, and benchmark checks
 
+The Phase 4 generator can now create a validated `.uirecsession` JSON
+configuration from the Rust session model. Audio files, folder layout, and ZIP
+export are still pending.
+
 Still in development:
 
 - External audio fixture corpus
 - MP3 decoder hardening for malformed or truncated files
-- Complete `.uirecsession` generation and session export workflow
+- Complete `.uirecsession` folder/export workflow
 - Full session export with generated audio files
 - ZIP export
 - Rust/WebAssembly audio processing in the browser
@@ -205,7 +209,7 @@ The format remains partially reverse-engineered. Unknown fields and compatibilit
 ui24-session-builder/
 ├── applications/cli/       Rust command-line application
 ├── applications/web/       Static GitHub Pages-compatible Web preview
-├── libraries/               Shared Rust libraries
+├── libraries/               Shared Rust libraries and session generator
 ├── tests/                   Integration tests
 ├── documentation/           Architecture and developer documentation
 └── specifications/          Requirements and roadmap

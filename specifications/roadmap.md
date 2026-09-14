@@ -7,13 +7,13 @@
 | Phase 1 | Partially complete | Preliminary format documentation exists; sample corpus and complete validation tooling remain outstanding. |
 | Phase 2 | Complete | Rust workspace, domain model, validation engine, and WAV/FLAC/AIFF/MP3 metadata extraction are implemented and tested. |
 | Phase 3 | Complete | In-memory conversion, generic output, benchmark, file output, and generated-fixture tests are implemented. |
-| Phase 4 | Next | Session configuration and folder generation are not implemented yet. |
+| Phase 4 | In progress | Validated `.uirecsession` JSON configuration generation is implemented; folder/audio/ZIP export remains. |
 | Phase 5 | In progress | Initial CLI audio analysis and conversion commands are implemented. |
 | Phase 6 | Planned | WebAssembly bindings are not implemented yet. |
 | Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, and `.uirecsession` download are available; shared Rust/WASM processing is still pending. |
 | Phases 8-9 | Planned | No production implementation yet. |
 
-The project currently has no session generator, ZIP exporter, WebAssembly processing layer, or session-level export workflow.
+The project currently has no session folder exporter, ZIP exporter, WebAssembly processing layer, or session-level export workflow.
 
 ## Phase 1
 
@@ -94,6 +94,25 @@ Deliverables:
 - configuration generator
 - folder generator
 - export validation
+
+Status: in progress.
+
+Implemented:
+
+- `ui24_session_generator` Rust crate
+- Validation before configuration generation
+- Official `.uirecsession` fields and camelCase JSON names
+- Filenames without extensions
+- `i.N` channel mapping serialization
+- JSON string and file output APIs
+- Golden tests based on the observed Ui24R schema
+
+Remaining:
+
+- Generated FLAC files in the session directory
+- Session folder layout
+- Export validation against real Ui24R fixtures
+- ZIP archive export
 
 ---
 
