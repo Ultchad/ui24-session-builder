@@ -6,11 +6,11 @@
 |-------|--------|-------|
 | Phase 1 | Partially complete | Preliminary format documentation exists; sample corpus and complete validation tooling remain outstanding. |
 | Phase 2 | Complete | Rust workspace, domain model, validation engine, and WAV/FLAC/AIFF/MP3 metadata extraction are implemented and tested. |
-| Phase 3 | Complete | In-memory conversion, generic output, benchmark, file output, and generated-fixture tests are implemented. |
+| Phase 3 | Complete | In-memory conversion, generic output, benchmark, file output, generated-fixture tests, and panic-safe malformed/truncated-input hardening are implemented. |
 | Phase 4 | In progress | Validated configuration, folder generation, CLI audio conversion, ZIP export, and official fixture schema validation are implemented. |
 | Phase 5 | In progress | CLI analysis, conversion, and session creation commands are implemented. |
 | Phase 6 | Planned | WebAssembly bindings are not implemented yet. |
-| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, and `.uirecsession` download are available; shared Rust/WASM processing is still pending. Microphone capture is explicitly deferred. |
+| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, browser-side audio metadata (sample rate, duration, extension) via the Web Audio API, stereo-to-mono channel splitting with identical-channel detection, in-browser ZIP session packaging, and `.uirecsession` download are available; shared Rust/WASM FLAC processing is still pending. Microphone capture is explicitly deferred. |
 | Phase 8 | In progress | GitHub Pages deployment workflow is configured for `main`. |
 | Phase 9 | Planned | No Flutter application implementation yet. |
 
@@ -19,6 +19,12 @@ The project currently has no WebAssembly processing layer or real-device compati
 Development tooling now documents matching Rust compiler, `rust-src`,
 rust-analyzer, rustfmt, and Clippy installation for Debian stable and
 backports.
+
+`documentation/developer_guides/coding_standards.md`,
+`documentation/developer_guides/testing_strategy.md`, and
+`documentation/developer_guides/localization.md` are now filled in,
+describing the conventions already enforced in the workspace instead of
+remaining empty placeholders.
 
 ## Phase 1
 
@@ -82,11 +88,15 @@ Implemented:
 - WAV-to-FLAC and FLAC-to-FLAC round-trip tests
 - AIFF-to-FLAC conversion test
 - WAV, FLAC, and AIFF metadata preservation tests
+- Malformed or truncated input hardening: metadata reading and FLAC
+  conversion catch decoder panics (`std::panic::catch_unwind`) and report a
+  controlled `Decode`/`ReadFailed` error instead of aborting the process,
+  verified against a deliberately truncated MP3 header and against the
+  real-world `Cri_wilhelm.mp3` fixture that previously failed decoding
 
 Remaining:
 
 - External WAV, FLAC, AIFF, and MP3 fixture corpus for compatibility hardening
-- MP3 malformed or truncated input hardening
 
 ---
 
@@ -185,6 +195,29 @@ Implemented:
 - Numeric mapping editor with a fixed `i.` prefix, exported as `i.N`
 - Browser `.uirecsession` download
 - Docker preview on host port 8080
+- Browser-side audio metadata: sample rate, total duration, and file
+  extension are computed from raw audio files via the Web Audio API
+  (`decodeAudioData`), without requiring the pending Rust/WASM adapter
+- Stereo-to-mono channel splitting: stereo files are decoded and, if the
+  left/right channels differ, split into two mono WAV files named
+  `<name> L.wav` and `<name> R.wav`; if both channels are identical,
+  the file is kept as a single mono-equivalent track instead
+- Non-blocking warnings shown in the UI when a file cannot be decoded or
+  when a stereo file is split
+- Browser-side ZIP session packaging: a store-only (uncompressed) ZIP
+  writer implemented in plain JavaScript bundles the actual local audio
+  files together with `.uirecsession` into a downloadable `session.zip`,
+  without any external library or Node.js build step
+- Fixed: the exported configuration file is now named exactly
+  `.uirecsession` (no basename) in both the direct JSON download and the
+  ZIP package, matching the schema in
+  `documentation/format_specifications/ui24r_session_format.md`; it was
+  previously saved/packaged as `session.uirecsession`, which the Ui24R
+  mixer would not recognize
+- Fixed: removing a track from the editor now also removes its underlying
+  audio file from the workspace, so a track excluded from the session is
+  also excluded from the downloaded ZIP package instead of lingering as an
+  orphaned file
 
 The browser file picker deliberately avoids the generic `audio/*` accept type,
 so Firefox Android does not offer microphone recording. No microphone
@@ -194,7 +227,8 @@ explicit feature.
 Remaining:
 
 - Rust/WASM audio processing
-- Browser-side FLAC export
+- Browser-side FLAC export (the ZIP package currently bundles source audio
+  as-is, typically WAV, instead of FLAC)
 
 ---
 
