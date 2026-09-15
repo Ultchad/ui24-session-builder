@@ -1,11 +1,41 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use ui24_audio_processing::{
-    AudioFormat, AudioMetadataReader, FlacEncoder, SymphoniaMetadataReader,
+    AudioFormat, AudioMetadataReader, FlacEncoder, SymphoniaMetadataReader, WavEncoder,
 };
 use ui24_core::{ChannelAssignment, Session, SessionMetadata, SessionTrack};
 use ui24_session_generator::{generate_session_folder, generate_session_zip};
+
+/// Destination audio format for `convert` and `create`.
+///
+/// Only [`OutputFormat::Flac`] has been confirmed compatible with real
+/// Ui24R hardware (see
+/// `documentation/format_specifications/ui24r_session_format.md`).
+/// [`OutputFormat::Wav`] is provided for local, non-hardware-verified
+/// exports. [`OutputFormat::Mp3`] is accepted as a value but not yet
+/// implemented: no MP3 encoder is wired in this workspace.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+#[value(rename_all = "lower")]
+enum OutputFormat {
+    /// FLAC output (default). Confirmed compatible with real Ui24R hardware.
+    Flac,
+    /// Canonical PCM WAV output. Local use only; not confirmed compatible
+    /// with the Ui24R mixer.
+    Wav,
+    /// MP3 output. Not implemented yet.
+    Mp3,
+}
+
+impl OutputFormat {
+    fn extension(self) -> &'static str {
+        match self {
+            Self::Flac => "flac",
+            Self::Wav => "wav",
+            Self::Mp3 => "mp3",
+        }
+    }
+}
 
 #[derive(Parser)]
 #[command(
@@ -25,12 +55,15 @@ enum Command {
         /// WAV, FLAC, AIFF, or MP3 input file.
         input: PathBuf,
     },
-    /// Convert a WAV, FLAC, AIFF, or MP3 file to FLAC.
+    /// Convert a WAV, FLAC, AIFF, or MP3 file to the destination format.
     Convert {
         /// Source audio file.
         input: PathBuf,
-        /// Destination FLAC file.
+        /// Destination file.
         output: PathBuf,
+        /// Destination audio format.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Flac)]
+        format: OutputFormat,
     },
     /// Create a Ui24R session folder from all supported audio files in a directory.
     Create {
@@ -44,6 +77,9 @@ enum Command {
         /// Write a ZIP archive instead of a session directory.
         #[arg(long)]
         zip: bool,
+        /// Destination audio format for every track.
+        #[arg(long, value_enum, default_value_t = OutputFormat::Flac)]
+        format: OutputFormat,
     },
 }
 
@@ -60,13 +96,18 @@ fn main() -> ExitCode {
 fn run(command_line: CommandLine) -> Result<(), String> {
     match command_line.command {
         Command::Analyze { input } => analyze(&input),
-        Command::Convert { input, output } => convert(&input, &output),
+        Command::Convert {
+            input,
+            output,
+            format,
+        } => convert(&input, &output, format),
         Command::Create {
             input_dir,
             output_dir,
             name,
             zip,
-        } => create(&input_dir, &output_dir, name, zip),
+            format,
+        } => create(&input_dir, &output_dir, name, zip, format),
     }
 }
 
@@ -91,13 +132,19 @@ fn analyze(input: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn convert(input: &Path, output: &Path) -> Result<(), String> {
+fn convert(input: &Path, output: &Path, format_choice: OutputFormat) -> Result<(), String> {
     let format = audio_format(input)?;
     let source = std::fs::read(input)
         .map_err(|error| format!("cannot read {}: {error}", input.display()))?;
-    FlacEncoder
-        .convert_to_flac_file(&source, format, output)
-        .map_err(|error| error.to_string())?;
+    match format_choice {
+        OutputFormat::Flac => FlacEncoder
+            .convert_to_flac_file(&source, format, output)
+            .map_err(|error| error.to_string())?,
+        OutputFormat::Wav => WavEncoder
+            .convert_to_wav_file(&source, format, output)
+            .map_err(|error| error.to_string())?,
+        OutputFormat::Mp3 => return Err(mp3_not_implemented_error()),
+    }
     println!("wrote {}", output.display());
     Ok(())
 }
@@ -107,7 +154,12 @@ fn create(
     output_dir: &Path,
     name: Option<String>,
     as_zip: bool,
+    format_choice: OutputFormat,
 ) -> Result<(), String> {
+    if format_choice == OutputFormat::Mp3 {
+        return Err(mp3_not_implemented_error());
+    }
+    let audio_extension = format_choice.extension();
     let mut inputs = std::fs::read_dir(input_dir)
         .map_err(|error| format!("cannot read {}: {error}", input_dir.display()))?
         .map(|entry| entry.map(|entry| entry.path()))
@@ -127,7 +179,6 @@ fn create(
     }
 
     let reader = SymphoniaMetadataReader;
-    let encoder = FlacEncoder;
     let mut tracks = Vec::with_capacity(inputs.len());
     let mut converted_files = Vec::with_capacity(inputs.len());
     let mut sample_rate = None;
@@ -168,14 +219,20 @@ fn create(
                 .to_owned();
             let channel = ChannelAssignment::new(track_index as u8)
                 .ok_or_else(|| format!("invalid channel assignment for {}", input.display()))?;
-            let output_file = staging_dir.join(format!("{display_name}.flac"));
-            encoder
-                .convert_to_flac_file(&source, format, &output_file)
-                .map_err(|error| format!("cannot convert {}: {error}", input.display()))?;
+            let output_file = staging_dir.join(format!("{display_name}.{audio_extension}"));
+            match format_choice {
+                OutputFormat::Flac => FlacEncoder
+                    .convert_to_flac_file(&source, format, &output_file)
+                    .map_err(|error| format!("cannot convert {}: {error}", input.display()))?,
+                OutputFormat::Wav => WavEncoder
+                    .convert_to_wav_file(&source, format, &output_file)
+                    .map_err(|error| format!("cannot convert {}: {error}", input.display()))?,
+                OutputFormat::Mp3 => unreachable!("rejected above"),
+            }
             converted_files.push(output_file);
             tracks.push(SessionTrack {
                 display_name: display_name.clone(),
-                file_name: format!("{display_name}.flac"),
+                file_name: format!("{display_name}.{audio_extension}"),
                 metadata,
                 channel_assignment: channel,
             });
@@ -196,22 +253,31 @@ fn create(
             tracks,
         };
         if as_zip {
-            generate_session_zip(&session, &converted_files, output_dir)
+            generate_session_zip(&session, &converted_files, audio_extension, output_dir)
                 .map_err(|error| error.to_string())
         } else {
-            generate_session_folder(&session, &converted_files, output_dir)
+            generate_session_folder(&session, &converted_files, audio_extension, output_dir)
                 .map_err(|error| error.to_string())
         }
     })();
 
     let _ = std::fs::remove_dir_all(&staging_dir);
     result?;
+    if format_choice == OutputFormat::Wav {
+        eprintln!(
+            "warning: WAV output has not been verified against real Ui24R hardware; only FLAC is confirmed compatible"
+        );
+    }
     if as_zip {
         println!("created session archive {}", output_dir.display());
     } else {
         println!("created session in {}", output_dir.display());
     }
     Ok(())
+}
+
+fn mp3_not_implemented_error() -> String {
+    "MP3 output is not implemented yet; use --format flac or --format wav".to_owned()
 }
 
 fn audio_format(path: &Path) -> Result<AudioFormat, String> {

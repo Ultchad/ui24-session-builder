@@ -14,9 +14,9 @@ Implemented today:
 - Session model and Ui24R channel assignments from `i.0` to `i.21`
 - Session validation rules
 - WAV, FLAC, AIFF, and MP3 metadata extraction
-- WAV, FLAC, AIFF, and MP3 to FLAC conversion
+- WAV, FLAC, AIFF, and MP3 to FLAC or WAV conversion, selectable via `--format` on the CLI (default FLAC, the only format confirmed compatible with real Ui24R hardware; MP3 output is not implemented yet)
 - Panic-safe handling of malformed or truncated audio inputs (decoder panics are caught and reported as errors instead of crashing)
-- Generic and native FLAC output
+- Generic and native FLAC and WAV output
 - CLI audio analysis and conversion commands
 - CLI session creation from an audio directory
 - Official Ui24R fixture schema validation
@@ -25,6 +25,7 @@ Implemented today:
 - Visible table headers, read-only filenames, editable track names, and numeric channel mappings
 - Browser-side audio metadata (sample rate, duration, extension) via the Web Audio API
 - Browser-side stereo-to-mono channel splitting, with identical-channel detection
+- Browser-side destination-format selector with FLAC as the default UI target, WAV as the only explicit browser conversion, and MP3 left untouched unless a real conversion path is added
 - Browser `.uirecsession` download
 - Browser-side ZIP session packaging (audio files plus `.uirecsession`, no external library)
 - Unit, integration, documentation, and benchmark checks
@@ -130,6 +131,12 @@ Convert an audio file to FLAC:
 cargo run -p ui24-session-builder -- convert ./input.wav ./output.flac
 ```
 
+Convert to WAV instead (local use only; not confirmed compatible with the Ui24R mixer):
+
+```bash
+cargo run -p ui24-session-builder -- convert ./input.wav ./output.wav --format wav
+```
+
 Create a session folder from all supported audio files in a directory:
 
 ```bash
@@ -142,6 +149,13 @@ the sources to FLAC, assigns channels in sorted filename order, and writes the
 `.uirecsession` file. Use `--zip` to write a root-level FLAC and `.uirecsession`
 archive instead. Compatibility validation against a real Ui24R remains future
 work.
+
+`convert` and `create` accept `--format flac|wav|mp3` (default `flac`). Only
+`flac` is confirmed compatible with real Ui24R hardware; `wav` produces a
+real, working local export (the CLI prints a compatibility warning to
+stderr); `mp3` is accepted as a value but rejected with a clear
+"not implemented yet" error, since no MP3 encoder is wired into this
+workspace.
 
 ## Web Application
 
@@ -162,7 +176,7 @@ In GitHub repository settings, select `Settings > Pages > Source: GitHub
 Actions`. The workflow publishes `applications/web/` directly; no Node.js
 build or backend is required.
 
-The current preview supports local `.uirecsession` inspection, multiple local audio files, drag-and-drop, track editing, and local `.uirecsession` download. When raw audio files are added, the browser decodes them with the Web Audio API to compute the real sample rate, total duration, and file extension instead of placeholder values. Stereo files are decoded per channel: if the left and right channels differ, the file is split into two mono WAV tracks named `<name> L.wav` and `<name> R.wav`; if both channels are identical, the file is kept as a single track. Removing a track from the editor also removes its underlying audio file, so it is excluded from any downloaded package. Non-blocking warnings are shown when a file cannot be decoded or is split. A session can also be downloaded as a `session.zip` package containing the actual local audio files plus the configuration file, named exactly `.uirecsession` as required by the Ui24R mixer, built entirely client-side with a small store-only ZIP writer (no external library). Full browser-side FLAC conversion still requires the future Rust/WebAssembly adapter, so packaged audio currently keeps its source format (typically WAV).
+The current preview supports local `.uirecsession` inspection, multiple local audio files, drag-and-drop, track editing, and local `.uirecsession` download. When raw audio files are added, the browser decodes them with the Web Audio API to compute the real sample rate, total duration, and file extension instead of placeholder values. Stereo files are decoded per channel: if the left and right channels differ, the file is split into two mono WAV tracks named `<name> L.wav` and `<name> R.wav`; if both channels are identical, the file is kept as a single track. A "Destination format" selector defaults to `flac` in the UI and lists all three targets (`flac`, `wav`, `mp3`), while only explicit WAV conversion is actually implemented client-side; FLAC and MP3 conversion remain future work. The browser does not silently rename MP3 imports as WAV, and it preserves the original file unless the user explicitly chooses a WAV export. Removing a track from the editor also removes its underlying audio file, so it is excluded from any downloaded package. Non-blocking warnings are shown when a file cannot be decoded or is converted. A session can also be downloaded as a `session.zip` package containing the actual local audio files plus the configuration file, named exactly `.uirecsession` as required by the Ui24R mixer, built entirely client-side with a small store-only ZIP writer (no external library). Full browser-side FLAC conversion still requires the future Rust/WebAssembly adapter, so packaged audio currently keeps its source format or explicit WAV export.
 
 The file picker intentionally lists explicit file extensions instead of the
 generic `audio/*` media type. This prevents Firefox Android from offering a
