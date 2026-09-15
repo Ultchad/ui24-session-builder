@@ -332,8 +332,8 @@ async function processAudioInputs(files) {
     }
 
     const baseName = stripExtension(file.name);
-    const leftFile = new File([encodeWavMono(left, sampleRate)], `${baseName} - L.wav`, { type: "audio/wav" });
-    const rightFile = new File([encodeWavMono(right, sampleRate)], `${baseName} - R.wav`, { type: "audio/wav" });
+    const leftFile = new File([encodeWavMono(left, sampleRate)], `${baseName} L.wav`, { type: "audio/wav" });
+    const rightFile = new File([encodeWavMono(right, sampleRate)], `${baseName} R.wav`, { type: "audio/wav" });
     workspace.trackMetadata.set(leftFile, { sampleRate, durationSamples, ext: ".wav" });
     workspace.trackMetadata.set(rightFile, { sampleRate, durationSamples, ext: ".wav" });
     workspace.warnings.push(`${file.name} has different left/right channels; split into ${leftFile.name} and ${rightFile.name}.`);

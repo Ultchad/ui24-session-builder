@@ -200,7 +200,7 @@ Implemented:
   (`decodeAudioData`), without requiring the pending Rust/WASM adapter
 - Stereo-to-mono channel splitting: stereo files are decoded and, if the
   left/right channels differ, split into two mono WAV files named
-  `<name> - L.wav` and `<name> - R.wav`; if both channels are identical,
+  `<name> L.wav` and `<name> R.wav`; if both channels are identical,
   the file is kept as a single mono-equivalent track instead
 - Non-blocking warnings shown in the UI when a file cannot be decoded or
   when a stereo file is split
