@@ -2,7 +2,16 @@ const input = document.querySelector("#file-input");
 const status = document.querySelector("#status");
 const result = document.querySelector("#result-content");
 const dropzone = document.querySelector("#dropzone");
-const workspace = { session: null, files: [], trackMetadata: new Map(), warnings: [] };
+const workspace = {
+  session: null,
+  files: [],
+  trackMetadata: new Map(),
+  warnings: [],
+  // The browser keeps the source format unless the user explicitly selects
+  // WAV conversion. FLAC is the default destination format in the UI, even
+  // though the shared Rust/WebAssembly adapter is still pending.
+  outputFormat: "flac"
+};
 
 input.addEventListener("change", () => handleFiles(input.files));
 dropzone.addEventListener("dragover", (event) => {
@@ -74,10 +83,23 @@ function renderAudioFiles() {
       ${metric("Duration", `${summary.durationSeconds} s`)}
       ${metric("Extension", extensionLabel)}
     </div>
+    ${formatSelector()}
     ${workspace.warnings.length ? `<div class="warnings">${workspace.warnings.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("")}</div>` : ""}
     ${editableTracks()}
     ${actions()}`;
   bindEditor();
+}
+
+function formatSelector() {
+  return `<label class="format-select">
+    <span>Destination format</span>
+    <select id="output-format">
+      <option value="flac" ${workspace.outputFormat === "flac" ? "selected" : ""}>FLAC (default, pending WebAssembly)</option>
+      <option value="wav" ${workspace.outputFormat === "wav" ? "selected" : ""}>WAV (implemented)</option>
+      <option value="mp3" disabled>MP3 (not implemented)</option>
+    </select>
+  </label>
+  <p class="privacy">FLAC is the default target name in the UI; MP3 files are left as-is unless an explicit WAV conversion is chosen. Only FLAC is confirmed compatible with real Ui24R hardware.</p>`;
 }
 
 function editableTracks() {
@@ -130,6 +152,18 @@ function bindEditor() {
   result.querySelector("#download-session").addEventListener("click", downloadSession);
   const packageButton = result.querySelector("#download-package");
   if (packageButton) packageButton.addEventListener("click", downloadSessionPackage);
+  const formatField = result.querySelector("#output-format");
+  if (formatField) formatField.addEventListener("change", async (event) => {
+    workspace.outputFormat = event.target.value;
+    status.textContent = "Re-encoding audio";
+    const files = workspace.files;
+    workspace.files = [];
+    workspace.trackMetadata = new Map();
+    workspace.warnings = [];
+    workspace.files.push(...(await processAudioInputs(files)));
+    renderAudioFiles();
+    status.textContent = "Ready";
+  });
   result.querySelector("#clear-workspace").addEventListener("click", () => {
     workspace.session = null;
     workspace.files = [];
@@ -287,10 +321,13 @@ function extensionOf(name) {
   return match ? match[0].toLowerCase() : "";
 }
 
-// Decodes each file with the Web Audio API to get sample rate and duration,
-// then splits stereo files with different L/R content into two mono WAV
-// files (matching Ui24R's per-channel mono track convention). Stereo files
-// whose channels are identical are kept as a single track.
+// Decodes each file with the Web Audio API to get sample rate and duration.
+// Stereo files with different L/R content are split into two mono WAV files
+// (matching Ui24R's per-channel mono track convention); stereo files whose
+// channels are identical are kept as a single track. Only an explicit WAV
+// selection triggers a decode-and-re-encode pass. FLAC remains the default UI
+// target name, but the browser still preserves the source file until the
+// shared Rust/WebAssembly adapter exists for real conversion.
 async function processAudioInputs(files) {
   if (!files.length) return [];
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -316,28 +353,36 @@ async function processAudioInputs(files) {
       continue;
     }
 
-    const { sampleRate, length: durationSamples } = buffer;
-    if (buffer.numberOfChannels < 2) {
-      workspace.trackMetadata.set(file, { sampleRate, durationSamples, ext: extension });
-      output.push(file);
+    const { sampleRate, length: durationSamples, numberOfChannels } = buffer;
+    if (numberOfChannels >= 2) {
+      const left = buffer.getChannelData(0);
+      const right = buffer.getChannelData(1);
+      if (!channelsAreIdentical(left, right)) {
+        const baseName = stripExtension(file.name);
+        const leftFile = new File([encodeWavPcm([left], sampleRate)], `${baseName} L.wav`, { type: "audio/wav" });
+        const rightFile = new File([encodeWavPcm([right], sampleRate)], `${baseName} R.wav`, { type: "audio/wav" });
+        workspace.trackMetadata.set(leftFile, { sampleRate, durationSamples, ext: ".wav" });
+        workspace.trackMetadata.set(rightFile, { sampleRate, durationSamples, ext: ".wav" });
+        workspace.warnings.push(`${file.name} has different left/right channels; split into ${leftFile.name} and ${rightFile.name}.`);
+        output.push(leftFile, rightFile);
+        continue;
+      }
+    }
+
+    if (workspace.outputFormat === "wav" && extension !== ".wav") {
+      const channels = [];
+      for (let channel = 0; channel < numberOfChannels; channel += 1) {
+        channels.push(buffer.getChannelData(channel));
+      }
+      const wavFile = new File([encodeWavPcm(channels, sampleRate)], `${stripExtension(file.name)}.wav`, { type: "audio/wav" });
+      workspace.trackMetadata.set(wavFile, { sampleRate, durationSamples, ext: ".wav" });
+      workspace.warnings.push(`${file.name} was decoded and converted to WAV (${wavFile.name}).`);
+      output.push(wavFile);
       continue;
     }
 
-    const left = buffer.getChannelData(0);
-    const right = buffer.getChannelData(1);
-    if (channelsAreIdentical(left, right)) {
-      workspace.trackMetadata.set(file, { sampleRate, durationSamples, ext: extension });
-      output.push(file);
-      continue;
-    }
-
-    const baseName = stripExtension(file.name);
-    const leftFile = new File([encodeWavMono(left, sampleRate)], `${baseName} L.wav`, { type: "audio/wav" });
-    const rightFile = new File([encodeWavMono(right, sampleRate)], `${baseName} R.wav`, { type: "audio/wav" });
-    workspace.trackMetadata.set(leftFile, { sampleRate, durationSamples, ext: ".wav" });
-    workspace.trackMetadata.set(rightFile, { sampleRate, durationSamples, ext: ".wav" });
-    workspace.warnings.push(`${file.name} has different left/right channels; split into ${leftFile.name} and ${rightFile.name}.`);
-    output.push(leftFile, rightFile);
+    workspace.trackMetadata.set(file, { sampleRate, durationSamples, ext: extension });
+    output.push(file);
   }
   await context.close();
   return output;
@@ -351,8 +396,13 @@ function channelsAreIdentical(left, right, epsilon = 1e-4) {
   return true;
 }
 
-function encodeWavMono(samples, sampleRate) {
-  const dataSize = samples.length * 2;
+// Encodes one or more interleaved Float32Array PCM channels as a canonical
+// 16-bit WAV file. Used both for stereo-split halves (one channel each) and
+// for whole-file WAV normalization (mono or multiple channels).
+function encodeWavPcm(channels, sampleRate) {
+  const channelCount = channels.length;
+  const frameCount = channels[0].length;
+  const dataSize = frameCount * channelCount * 2;
   const buffer = new ArrayBuffer(44 + dataSize);
   const view = new DataView(buffer);
   writeWavString(view, 0, "RIFF");
@@ -361,17 +411,20 @@ function encodeWavMono(samples, sampleRate) {
   writeWavString(view, 12, "fmt ");
   view.setUint32(16, 16, true);
   view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
+  view.setUint16(22, channelCount, true);
   view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true);
-  view.setUint16(32, 2, true);
+  view.setUint32(28, sampleRate * channelCount * 2, true);
+  view.setUint16(32, channelCount * 2, true);
   view.setUint16(34, 16, true);
   writeWavString(view, 36, "data");
   view.setUint32(40, dataSize, true);
   let offset = 44;
-  for (let index = 0; index < samples.length; index += 1, offset += 2) {
-    const clamped = Math.max(-1, Math.min(1, samples[index]));
-    view.setInt16(offset, clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff, true);
+  for (let frame = 0; frame < frameCount; frame += 1) {
+    for (let channel = 0; channel < channelCount; channel += 1) {
+      const clamped = Math.max(-1, Math.min(1, channels[channel][frame]));
+      view.setInt16(offset, clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff, true);
+      offset += 2;
+    }
   }
   return new Blob([buffer], { type: "audio/wav" });
 }

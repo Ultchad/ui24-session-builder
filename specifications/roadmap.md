@@ -6,11 +6,11 @@
 |-------|--------|-------|
 | Phase 1 | Partially complete | Preliminary format documentation exists; sample corpus and complete validation tooling remain outstanding. |
 | Phase 2 | Complete | Rust workspace, domain model, validation engine, and WAV/FLAC/AIFF/MP3 metadata extraction are implemented and tested. |
-| Phase 3 | Complete | In-memory conversion, generic output, benchmark, file output, generated-fixture tests, and panic-safe malformed/truncated-input hardening are implemented. |
-| Phase 4 | In progress | Validated configuration, folder generation, CLI audio conversion, ZIP export, and official fixture schema validation are implemented. |
-| Phase 5 | In progress | CLI analysis, conversion, and session creation commands are implemented. |
+| Phase 3 | Complete | In-memory conversion, generic output, benchmark, file output, generated-fixture tests, panic-safe malformed/truncated-input hardening, and a WAV output encoder sharing the same decode stage are implemented. |
+| Phase 4 | In progress | Validated configuration, folder generation, CLI audio conversion, ZIP export, official fixture schema validation, and a configurable destination audio extension are implemented. |
+| Phase 5 | In progress | CLI analysis, conversion, and session creation commands are implemented, including a `--format flac\|wav\|mp3` destination-format option (`mp3` not yet implemented). |
 | Phase 6 | Planned | WebAssembly bindings are not implemented yet. |
-| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, browser-side audio metadata (sample rate, duration, extension) via the Web Audio API, stereo-to-mono channel splitting with identical-channel detection, in-browser ZIP session packaging, and `.uirecsession` download are available; shared Rust/WASM FLAC processing is still pending. Microphone capture is explicitly deferred. |
+| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, browser-side audio metadata (sample rate, duration, extension) via the Web Audio API, stereo-to-mono channel splitting with identical-channel detection, a destination-format selector that defaults to FLAC while keeping source files intact unless a WAV conversion is explicitly chosen, in-browser ZIP session packaging, and `.uirecsession` download are available; shared Rust/WASM FLAC processing is still pending. Microphone capture is explicitly deferred. |
 | Phase 8 | In progress | GitHub Pages deployment workflow is configured for `main`. |
 | Phase 9 | Planned | No Flutter application implementation yet. |
 
@@ -93,10 +93,17 @@ Implemented:
   controlled `Decode`/`ReadFailed` error instead of aborting the process,
   verified against a deliberately truncated MP3 header and against the
   real-world `Cri_wilhelm.mp3` fixture that previously failed decoding
+- Shared PCM decode stage (`decode_pcm`) reused by every output-format
+  encoder, so each destination format only implements its own encoding step
+- `WavEncoder`: canonical PCM WAV output (8/16/24/32-bit), sharing the same
+  decode stage, panic-safety, and malformed-input tests as `FlacEncoder`.
+  WAV is not confirmed compatible with real Ui24R hardware; it is offered
+  for local, non-hardware-verified exports only
 
 Remaining:
 
 - External WAV, FLAC, AIFF, and MP3 fixture corpus for compatibility hardening
+- MP3 output encoding (no encoder is wired in this workspace yet)
 
 ---
 
@@ -125,6 +132,11 @@ Implemented:
 - ZIP archive export with root-level FLAC files and `.uirecsession`
 - Official `.uirecsession` fixture schema validation
 - Golden tests based on the observed Ui24R schema
+- Configurable destination audio extension: `generate_configuration`,
+  `generate_session_folder`, and `generate_session_zip` accept the audio
+  extension used for a session (`"flac"` or `"wav"`) instead of assuming
+  FLAC, while `VERIFIED_UI24R_AUDIO_EXTENSION` (`"flac"`) documents the
+  only extension confirmed compatible with real hardware
 
 Remaining:
 
@@ -147,16 +159,24 @@ Status: in progress.
 Implemented for development and testing:
 
 - `analyze <input>` for WAV, FLAC, AIFF, and MP3 metadata
-- `convert <input> <output>` for FLAC conversion
-- `create <input-dir> <output-dir>` for sorted multi-track session creation
-- `create <input-dir> <output.zip> --zip` for ZIP session creation
+- `convert <input> <output> [--format flac|wav|mp3]` for destination-format
+  conversion (`flac` is the default and only extension confirmed compatible
+  with real Ui24R hardware; `wav` is a real, working local export; `mp3` is
+  accepted as a value but rejected with a clear "not implemented yet" error)
+- `create <input-dir> <output-dir> [--format flac|wav|mp3]` for sorted
+  multi-track session creation in the chosen format, printing a compatibility
+  warning to stderr when a format other than FLAC is used
+- `create <input-dir> <output.zip> --zip [--format flac|wav|mp3]` for ZIP
+  session creation in the chosen format
 
 The CLI ZIP workflow has been tested with the supplied WAV fixtures and
 produces root-level FLAC files plus `.uirecsession`.
 
-The CLI session workflow rejects mixed sample rates and exports prepared FLAC
-tracks plus `.uirecsession`, either as a folder or ZIP archive. Real-device
-compatibility tests remain outstanding.
+The CLI session workflow rejects mixed sample rates and exports prepared
+audio tracks plus `.uirecsession`, either as a folder or ZIP archive, in
+whichever destination format was requested. Real-device compatibility tests
+remain outstanding, and only FLAC has been confirmed against the observed
+Ui24R schema.
 
 ---
 
@@ -208,6 +228,11 @@ Implemented:
   writer implemented in plain JavaScript bundles the actual local audio
   files together with `.uirecsession` into a downloadable `session.zip`,
   without any external library or Node.js build step
+- Destination-format selector: a "Destination format" dropdown lets the
+  user pick the output container for raw audio files. `wav` is genuinely
+  implemented (every non-WAV file is decoded and re-encoded as canonical
+  PCM WAV, not just renamed); `flac` and `mp3` are listed as disabled
+  options pending the Rust/WASM adapter and an MP3 encoder, respectively
 - Fixed: the exported configuration file is now named exactly
   `.uirecsession` (no basename) in both the direct JSON download and the
   ZIP package, matching the schema in

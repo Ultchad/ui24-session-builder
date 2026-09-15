@@ -8,7 +8,10 @@ use ui24_core::{validate_session, Session, ValidationIssue};
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipWriter};
 
-const UI24R_AUDIO_EXTENSION: &str = ".flac";
+/// The only audio extension confirmed compatible with real Ui24R hardware,
+/// observed in the official `.uirecsession` example. Other extensions are
+/// accepted by this crate for local, non-hardware-verified exports only.
+pub const VERIFIED_UI24R_AUDIO_EXTENSION: &str = "flac";
 
 /// A verified Ui24R session configuration ready for JSON serialization.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -61,44 +64,33 @@ impl Ui24rSessionConfiguration {
     }
 }
 
-/// Generates a complete session folder from already-converted FLAC sources.
+/// Generates a complete session folder from already-converted audio sources.
 ///
-/// `source_files` must contain one existing `.flac` file per session track, in
-/// the same order as `session.tracks`. The destination directory is created
-/// when necessary and may already exist.
+/// `source_files` must contain one existing file per session track, already
+/// encoded to `audio_extension` (without a leading dot, for example
+/// `"flac"`), in the same order as `session.tracks`. The destination
+/// directory is created when necessary and may already exist.
+///
+/// Only `"flac"` ([`VERIFIED_UI24R_AUDIO_EXTENSION`]) has been confirmed
+/// compatible with real Ui24R hardware.
 pub fn generate_session_folder(
     session: &Session,
     source_files: &[PathBuf],
+    audio_extension: &str,
     destination: impl AsRef<Path>,
 ) -> Result<(), SessionGenerationError> {
-    let configuration = generate_configuration(session)?;
-    if source_files.len() != session.tracks.len() {
-        return Err(SessionGenerationError::SourceFiles(format!(
-            "expected {} FLAC source file(s), received {}",
-            session.tracks.len(),
-            source_files.len()
-        )));
-    }
+    let configuration = generate_configuration(session, audio_extension)?;
+    validate_source_files(session, source_files, audio_extension)?;
 
     let destination = destination.as_ref();
     std::fs::create_dir_all(destination)
         .map_err(|error| SessionGenerationError::Write(error.to_string()))?;
 
     for (track, source) in session.tracks.iter().zip(source_files) {
-        if source.extension().and_then(|extension| extension.to_str()) != Some("flac") {
-            return Err(SessionGenerationError::SourceFiles(format!(
-                "source {} is not a FLAC file",
-                source.display()
-            )));
-        }
-        if !source.is_file() {
-            return Err(SessionGenerationError::SourceFiles(format!(
-                "source file does not exist: {}",
-                source.display()
-            )));
-        }
-
-        let filename = format!("{}.flac", filename_without_extension(&track.file_name));
+        let filename = format!(
+            "{}.{audio_extension}",
+            filename_without_extension(&track.file_name)
+        );
         std::fs::copy(source, destination.join(filename))
             .map_err(|error| SessionGenerationError::Write(error.to_string()))?;
     }
@@ -110,20 +102,29 @@ pub fn generate_session_folder(
 ///
 /// The archive contains the audio files at its root and a `.uirecsession` file
 /// at the root, matching the generated folder layout.
+///
+/// `source_files` must already be encoded to `audio_extension` (without a
+/// leading dot, for example `"flac"`). Only `"flac"`
+/// ([`VERIFIED_UI24R_AUDIO_EXTENSION`]) has been confirmed compatible with
+/// real Ui24R hardware.
 pub fn generate_session_zip(
     session: &Session,
     source_files: &[PathBuf],
+    audio_extension: &str,
     destination: impl AsRef<Path>,
 ) -> Result<(), SessionGenerationError> {
-    let configuration = generate_configuration(session)?;
-    validate_source_files(session, source_files)?;
+    let configuration = generate_configuration(session, audio_extension)?;
+    validate_source_files(session, source_files, audio_extension)?;
     let output = std::fs::File::create(destination)
         .map_err(|error| SessionGenerationError::Write(error.to_string()))?;
     let mut archive = ZipWriter::new(output);
     let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
 
     for (track, source) in session.tracks.iter().zip(source_files) {
-        let filename = format!("{}.flac", filename_without_extension(&track.file_name));
+        let filename = format!(
+            "{}.{audio_extension}",
+            filename_without_extension(&track.file_name)
+        );
         archive
             .start_file(filename, options)
             .map_err(|error| SessionGenerationError::Archive(error.to_string()))?;
@@ -148,18 +149,19 @@ pub fn generate_session_zip(
 fn validate_source_files(
     session: &Session,
     source_files: &[PathBuf],
+    audio_extension: &str,
 ) -> Result<(), SessionGenerationError> {
     if source_files.len() != session.tracks.len() {
         return Err(SessionGenerationError::SourceFiles(format!(
-            "expected {} FLAC source file(s), received {}",
+            "expected {} .{audio_extension} source file(s), received {}",
             session.tracks.len(),
             source_files.len()
         )));
     }
     for source in source_files {
-        if source.extension().and_then(|extension| extension.to_str()) != Some("flac") {
+        if source.extension().and_then(|extension| extension.to_str()) != Some(audio_extension) {
             return Err(SessionGenerationError::SourceFiles(format!(
-                "source {} is not a FLAC file",
+                "source {} is not a .{audio_extension} file",
                 source.display()
             )));
         }
@@ -174,8 +176,15 @@ fn validate_source_files(
 }
 
 /// Generates a verified Ui24R configuration from a validated domain session.
+///
+/// `audio_extension` is the destination audio file extension without a
+/// leading dot (for example `"flac"` or `"wav"`) that every track will be
+/// encoded to. Only `"flac"` ([`VERIFIED_UI24R_AUDIO_EXTENSION`]) has been
+/// confirmed compatible with real Ui24R hardware; other extensions are
+/// accepted for local, non-hardware-verified exports.
 pub fn generate_configuration(
     session: &Session,
+    audio_extension: &str,
 ) -> Result<Ui24rSessionConfiguration, SessionGenerationError> {
     let issues = validate_session(session);
     if !issues.is_empty() {
@@ -202,7 +211,7 @@ pub fn generate_configuration(
 
     Ok(Ui24rSessionConfiguration {
         complete: true,
-        ext: UI24R_AUDIO_EXTENSION.to_owned(),
+        ext: format!(".{audio_extension}"),
         files,
         length_samples: session.metadata.duration_samples,
         length_seconds,
@@ -291,7 +300,7 @@ mod tests {
 
     #[test]
     fn generates_observed_uirecsession_fields() {
-        let configuration = generate_configuration(&session()).expect("valid session");
+        let configuration = generate_configuration(&session(), "flac").expect("valid session");
         let json = configuration.to_json().expect("serializable configuration");
         let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
 
@@ -312,7 +321,7 @@ mod tests {
         invalid.tracks[1].channel_assignment = ChannelAssignment::new(0).expect("valid channel");
 
         assert!(matches!(
-            generate_configuration(&invalid),
+            generate_configuration(&invalid, "flac"),
             Err(SessionGenerationError::InvalidSession(_))
         ));
     }
@@ -339,6 +348,7 @@ mod tests {
         generate_session_folder(
             &session(),
             &[source_one.clone(), source_two.clone()],
+            "flac",
             &destination,
         )
         .expect("session folder should be generated");
@@ -362,7 +372,7 @@ mod tests {
         std::fs::write(&source_one, b"flac-one").expect("source one should be written");
         std::fs::write(&source_two, b"flac-two").expect("source two should be written");
 
-        generate_session_zip(&session(), &[source_one, source_two], &archive_path)
+        generate_session_zip(&session(), &[source_one, source_two], "flac", &archive_path)
             .expect("ZIP should be generated");
 
         let archive = std::fs::File::open(&archive_path).expect("ZIP should be readable");
@@ -386,6 +396,7 @@ mod tests {
         let result = generate_session_folder(
             &session(),
             &[wav_source, root.join("missing.flac")],
+            "flac",
             root.join("session"),
         );
 
