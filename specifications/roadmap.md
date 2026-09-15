@@ -206,8 +206,18 @@ Implemented:
   when a stereo file is split
 - Browser-side ZIP session packaging: a store-only (uncompressed) ZIP
   writer implemented in plain JavaScript bundles the actual local audio
-  files together with `session.uirecsession` into a downloadable
-  `session.zip`, without any external library or Node.js build step
+  files together with `.uirecsession` into a downloadable `session.zip`,
+  without any external library or Node.js build step
+- Fixed: the exported configuration file is now named exactly
+  `.uirecsession` (no basename) in both the direct JSON download and the
+  ZIP package, matching the schema in
+  `documentation/format_specifications/ui24r_session_format.md`; it was
+  previously saved/packaged as `session.uirecsession`, which the Ui24R
+  mixer would not recognize
+- Fixed: removing a track from the editor now also removes its underlying
+  audio file from the workspace, so a track excluded from the session is
+  also excluded from the downloaded ZIP package instead of lingering as an
+  orphaned file
 
 The browser file picker deliberately avoids the generic `audio/*` accept type,
 so Firefox Android does not offer microphone recording. No microphone

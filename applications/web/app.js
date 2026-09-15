@@ -115,14 +115,17 @@ function bindEditor() {
   result.querySelectorAll("[data-field]").forEach((field) => field.addEventListener("input", updateSessionFromEditor));
   result.querySelectorAll("[data-remove]").forEach((button) => button.addEventListener("click", () => {
     const index = Number(button.dataset.remove);
+    const isRawAudio = workspace.files.length > 0;
+    if (isRawAudio) {
+      const [removed] = workspace.files.splice(index, 1);
+      workspace.trackMetadata.delete(removed);
+    }
     if (workspace.session) {
       workspace.session.files.splice(index, 1);
       workspace.session.names.splice(index, 1);
       workspace.session.mapping.splice(index, 1);
-    } else {
-      workspace.files.splice(index, 1);
     }
-    workspace.session ? renderSession(workspace.session, "edited session") : renderAudioFiles();
+    isRawAudio ? renderAudioFiles() : renderSession(workspace.session, "edited session");
   }));
   result.querySelector("#download-session").addEventListener("click", downloadSession);
   const packageButton = result.querySelector("#download-package");
@@ -147,10 +150,10 @@ function updateSessionFromEditor() {
     }
     return `i.${value}`;
   });
-  if (workspace.session) {
-    workspace.session.names = names;
-    workspace.session.mapping = mapping;
-  } else {
+  if (workspace.files.length > 0) {
+    // Raw-audio workspace: recompute files/ext/sampleRate/duration from the
+    // current file list on every edit, so a removed track disappears from
+    // the exported session and ZIP package instead of leaving stale data.
     const summary = computeAudioSummary();
     workspace.session = {
       complete: false,
@@ -162,6 +165,9 @@ function updateSessionFromEditor() {
       lengthSamples: summary.durationSamples,
       lengthSeconds: summary.durationSeconds
     };
+  } else if (workspace.session) {
+    workspace.session.names = names;
+    workspace.session.mapping = mapping;
   }
 }
 
@@ -170,7 +176,7 @@ function downloadSession() {
   const blob = new Blob([JSON.stringify(workspace.session, null, 2)], { type: "application/json" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = "session.uirecsession";
+  link.download = ".uirecsession";
   link.click();
   URL.revokeObjectURL(link.href);
 }
@@ -184,7 +190,7 @@ async function downloadSessionPackage() {
     entries.push({ name: file.name, data: new Uint8Array(await file.arrayBuffer()) });
   }
   entries.push({
-    name: "session.uirecsession",
+    name: ".uirecsession",
     data: new TextEncoder().encode(JSON.stringify(workspace.session, null, 2))
   });
   const blob = buildZip(entries);
