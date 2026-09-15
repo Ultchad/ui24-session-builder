@@ -189,6 +189,28 @@ build or backend is required.
 
 The current preview supports local `.uirecsession` inspection, multiple local audio files, drag-and-drop, track editing, and local `.uirecsession` download. When raw audio files are added, the browser decodes them with the Web Audio API to compute the real sample rate, total duration, and file extension instead of placeholder values. Stereo files are decoded per channel: if the left and right channels differ, the file is split into two mono WAV tracks named `<name> L.wav` and `<name> R.wav`; if both channels are identical, the file is kept as a single track. A "Destination format" selector defaults to `flac` in the UI and lists all three targets (`flac`, `wav`, `mp3`), while only explicit WAV conversion is actually implemented client-side; FLAC and MP3 conversion remain future work. The browser does not silently rename MP3 imports as WAV, and it preserves the original file unless the user explicitly chooses a WAV export. Removing a track from the editor also removes its underlying audio file, so it is excluded from any downloaded package. Non-blocking warnings are shown when a file cannot be decoded or is converted. A session can also be downloaded as a `session.zip` package containing the actual local audio files plus the configuration file, named exactly `.uirecsession` as required by the Ui24R mixer, built entirely client-side with a small store-only ZIP writer (no external library). Full browser-side FLAC conversion still requires the future Rust/WebAssembly adapter, so packaged audio currently keeps its source format or explicit WAV export.
 
+### USB preparation for the Ui24R
+
+For the moment, the USB key must be prepared in a strict layout before plugging it into the mixer:
+
+- Format the key as `FAT32` only.
+- Create a root folder named `Multitrack`.
+- Inside `Multitrack`, create one folder per session using the name you want.
+- Put the contents of the generated ZIP archive inside that per-session folder.
+
+Example tree:
+
+```text
+USB drive/
+└── Multitrack/
+    ├── Live Session A/
+    │   ├── .uirecsession
+    │   └── *.flac
+    └── Live Session B/
+        ├── .uirecsession
+        └── *.flac
+```
+
 The file picker intentionally lists explicit file extensions instead of the
 generic `audio/*` media type. This prevents Firefox Android from offering a
 microphone recording action. Microphone capture is not requested or used; it is

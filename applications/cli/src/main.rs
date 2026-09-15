@@ -41,7 +41,8 @@ impl OutputFormat {
 #[command(
     name = "ui24-session-builder",
     version,
-    about = "Offline Ui24R audio session tools"
+    about = "Offline Ui24R audio session tools",
+    before_help = "USB preparation for Ui24R: format the key as FAT32 only. Create a root folder named Multitrack, then add one folder per session (chosen name) and place the session ZIP contents inside that folder."
 )]
 struct CommandLine {
     #[command(subcommand)]

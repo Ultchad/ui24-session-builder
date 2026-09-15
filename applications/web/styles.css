@@ -20,6 +20,13 @@ body {
 }
 .shell { width: min(1080px, calc(100% - 40px)); margin: 0 auto; padding: 52px 0 72px; }
 .masthead { max-width: 760px; padding: 42px 0 56px; }
+.usb-help { margin: 0 0 28px; border: 1px solid var(--line); background: var(--panel); }
+.usb-help summary { padding: 16px 18px; cursor: pointer; color: var(--accent-dark); font: 700 13px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+.usb-help summary::-webkit-details-marker { display: none; }
+.usb-help[open] summary { border-bottom: 1px solid var(--line); }
+.usb-help-body { padding: 18px; color: var(--ink); }
+.usb-help-body p { margin: 0 0 10px; }
+.usb-help-body pre { margin: 0; padding: 14px; overflow-x: auto; background: #f2efe9; border: 1px solid var(--line); color: var(--ink); font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .eyebrow { margin: 0 0 10px; color: var(--accent-dark); font: 700 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; }
 h1, h2, p { margin-top: 0; }
 h1 { max-width: 760px; margin-bottom: 18px; font-size: clamp(44px, 8vw, 92px); line-height: .94; font-weight: 400; letter-spacing: -0.03em; }

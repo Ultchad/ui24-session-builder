@@ -15,6 +15,23 @@
       <p class="lede">Inspect a Ui24R session file or an audio source locally in your browser.</p>
     </header>
 
+    <details class="usb-help">
+      <summary>How to prepare the USB key for the Ui24R</summary>
+      <div class="usb-help-body">
+        <p>Format the USB key as <strong>FAT32 only</strong> for now.</p>
+        <p>Create a root folder named <strong>Multitrack</strong>.</p>
+        <p>Inside that folder, create one subfolder per session using the name you want, then place the contents of the generated ZIP inside that session folder.</p>
+        <pre>USB drive/
+└── Multitrack/
+    ├── Live Session A/
+    │   ├── .uirecsession
+    │   └── *.flac
+    └── Live Session B/
+        ├── .uirecsession
+        └── *.flac</pre>
+      </div>
+    </details>
+
     <section class="workspace" aria-labelledby="workspace-title">
       <div class="section-heading">
         <div>

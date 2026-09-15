@@ -21,6 +21,7 @@ The project currently has no WebAssembly processing layer or real-device compati
 - [x] Finalize browser export semantics: FLAC remains the default target, explicit WAV conversion is the only implemented browser conversion, and MP3 is not silently renamed
 - [x] Fix session packaging and naming bugs: `.uirecsession` is written with the exact required filename and the ZIP includes only the active session files
 - [x] Harden the decode pipeline against malformed/truncated inputs, especially MP3 playback edge cases
+- [x] Document the required USB layout for the Ui24R: FAT32 key, root `Multitrack` folder, and one folder per session containing the ZIP contents
 - [ ] Implement the missing Rust/WebAssembly bridge so browser-side FLAC conversion works without manual preparation
 - [ ] Add a real MP3 encoder path or remove MP3 export from the user-facing options until it is implemented
 - [ ] Validate generated sessions on a real Ui24R mixer using the official fixture set and a physical SD/USB export flow
@@ -229,6 +230,9 @@ Implemented:
 - Browser-side audio metadata: sample rate, total duration, and file
   extension are computed from raw audio files via the Web Audio API
   (`decodeAudioData`), without requiring the pending Rust/WASM adapter
+- USB prep guidance shown in the web UI and CLI help: format as FAT32,
+  create a root `Multitrack` folder, and store each session in its own
+  subfolder with the ZIP contents inside it
 - Stereo-to-mono channel splitting: stereo files are decoded and, if the
   left/right channels differ, split into two mono WAV files named
   `<name> L.wav` and `<name> R.wav`; if both channels are identical,
