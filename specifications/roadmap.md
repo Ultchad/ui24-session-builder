@@ -10,7 +10,7 @@
 | Phase 4 | In progress | Validated configuration, folder generation, CLI audio conversion, ZIP export, and official fixture schema validation are implemented. |
 | Phase 5 | In progress | CLI analysis, conversion, and session creation commands are implemented. |
 | Phase 6 | Planned | WebAssembly bindings are not implemented yet. |
-| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, and `.uirecsession` download are available; shared Rust/WASM processing is still pending. Microphone capture is explicitly deferred. |
+| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, browser-side audio metadata (sample rate, duration, extension) via the Web Audio API, stereo-to-mono channel splitting with identical-channel detection, and `.uirecsession` download are available; shared Rust/WASM processing is still pending. Microphone capture is explicitly deferred. |
 | Phase 8 | In progress | GitHub Pages deployment workflow is configured for `main`. |
 | Phase 9 | Planned | No Flutter application implementation yet. |
 
@@ -185,6 +185,15 @@ Implemented:
 - Numeric mapping editor with a fixed `i.` prefix, exported as `i.N`
 - Browser `.uirecsession` download
 - Docker preview on host port 8080
+- Browser-side audio metadata: sample rate, total duration, and file
+  extension are computed from raw audio files via the Web Audio API
+  (`decodeAudioData`), without requiring the pending Rust/WASM adapter
+- Stereo-to-mono channel splitting: stereo files are decoded and, if the
+  left/right channels differ, split into two mono WAV files named
+  `<name> - L.wav` and `<name> - R.wav`; if both channels are identical,
+  the file is kept as a single mono-equivalent track instead
+- Non-blocking warnings shown in the UI when a file cannot be decoded or
+  when a stereo file is split
 
 The browser file picker deliberately avoids the generic `audio/*` accept type,
 so Firefox Android does not offer microphone recording. No microphone

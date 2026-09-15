@@ -2,7 +2,7 @@ const input = document.querySelector("#file-input");
 const status = document.querySelector("#status");
 const result = document.querySelector("#result-content");
 const dropzone = document.querySelector("#dropzone");
-const workspace = { session: null, files: [] };
+const workspace = { session: null, files: [], trackMetadata: new Map(), warnings: [] };
 
 input.addEventListener("change", () => handleFiles(input.files));
 dropzone.addEventListener("dragover", (event) => {
@@ -25,10 +25,15 @@ async function handleFiles(fileList) {
     if (sessionFile) {
       workspace.session = JSON.parse(await sessionFile.text());
       workspace.files = [];
+      workspace.trackMetadata = new Map();
+      workspace.warnings = [];
       renderSession(workspace.session, sessionFile.name);
     } else {
       workspace.session = null;
-      workspace.files.push(...files.filter(isAudioFile));
+      workspace.warnings = [];
+      status.textContent = "Analyzing audio";
+      const processed = await processAudioInputs(files.filter(isAudioFile));
+      workspace.files.push(...processed);
       renderAudioFiles();
     }
     status.textContent = "Ready";
@@ -60,13 +65,16 @@ function renderSession(session, filename) {
 
 function renderAudioFiles() {
   const files = workspace.files;
+  const summary = computeAudioSummary();
+  const extensionLabel = summary.extensions.size === 1 ? [...summary.extensions][0] : `${summary.extensions.size} formats`;
   result.innerHTML = `
     <div class="summary">
       ${metric("Files", files.length)}
-      ${metric("Audio", files.map((file) => file.name).join(", "))}
-      ${metric("Mode", "New session")}
-      ${metric("Browser", "Local only")}
+      ${metric("Sample rate", summary.sampleRateMismatch ? "Mismatched" : `${summary.sampleRate} Hz`)}
+      ${metric("Duration", `${summary.durationSeconds} s`)}
+      ${metric("Extension", extensionLabel)}
     </div>
+    ${workspace.warnings.length ? `<div class="warnings">${workspace.warnings.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("")}</div>` : ""}
     ${editableTracks()}
     ${actions()}`;
   bindEditor();
@@ -115,6 +123,8 @@ function bindEditor() {
   result.querySelector("#clear-workspace").addEventListener("click", () => {
     workspace.session = null;
     workspace.files = [];
+    workspace.trackMetadata = new Map();
+    workspace.warnings = [];
     result.innerHTML = '<div class="empty-state">Select or drop files to build a local session.</div>';
     status.textContent = "Waiting for a file";
   });
@@ -134,15 +144,16 @@ function updateSessionFromEditor() {
     workspace.session.names = names;
     workspace.session.mapping = mapping;
   } else {
+    const summary = computeAudioSummary();
     workspace.session = {
       complete: false,
-      ext: ".flac",
+      ext: summary.extensions.size === 1 ? [...summary.extensions][0] : ".flac",
       files: workspace.files.map((file) => stripExtension(file.name)),
       names,
       mapping,
-      sampleRate: 48000,
-      lengthSamples: 0,
-      lengthSeconds: 0
+      sampleRate: summary.sampleRate,
+      lengthSamples: summary.durationSamples,
+      lengthSeconds: summary.durationSeconds
     };
   }
 }
@@ -172,6 +183,121 @@ function stripExtension(name) {
 function mappingNumber(mapping, fallback) {
   const value = String(mapping ?? "").replace(/^i\./, "");
   return /^\d+$/.test(value) ? value : String(fallback);
+}
+
+function extensionOf(name) {
+  const match = /\.[^.]+$/.exec(name);
+  return match ? match[0].toLowerCase() : "";
+}
+
+// Decodes each file with the Web Audio API to get sample rate and duration,
+// then splits stereo files with different L/R content into two mono WAV
+// files (matching Ui24R's per-channel mono track convention). Stereo files
+// whose channels are identical are kept as a single track.
+async function processAudioInputs(files) {
+  if (!files.length) return [];
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    for (const file of files) {
+      workspace.trackMetadata.set(file, { sampleRate: null, durationSamples: 0, ext: extensionOf(file.name) });
+    }
+    workspace.warnings.push("This browser cannot decode audio; duration and channel checks are unavailable.");
+    return files;
+  }
+
+  const context = new AudioContextClass();
+  const output = [];
+  for (const file of files) {
+    const extension = extensionOf(file.name);
+    let buffer;
+    try {
+      buffer = await context.decodeAudioData(await file.arrayBuffer());
+    } catch {
+      workspace.trackMetadata.set(file, { sampleRate: null, durationSamples: 0, ext: extension });
+      workspace.warnings.push(`Could not decode ${file.name} in the browser; duration is unavailable.`);
+      output.push(file);
+      continue;
+    }
+
+    const { sampleRate, length: durationSamples } = buffer;
+    if (buffer.numberOfChannels < 2) {
+      workspace.trackMetadata.set(file, { sampleRate, durationSamples, ext: extension });
+      output.push(file);
+      continue;
+    }
+
+    const left = buffer.getChannelData(0);
+    const right = buffer.getChannelData(1);
+    if (channelsAreIdentical(left, right)) {
+      workspace.trackMetadata.set(file, { sampleRate, durationSamples, ext: extension });
+      output.push(file);
+      continue;
+    }
+
+    const baseName = stripExtension(file.name);
+    const leftFile = new File([encodeWavMono(left, sampleRate)], `${baseName} - L.wav`, { type: "audio/wav" });
+    const rightFile = new File([encodeWavMono(right, sampleRate)], `${baseName} - R.wav`, { type: "audio/wav" });
+    workspace.trackMetadata.set(leftFile, { sampleRate, durationSamples, ext: ".wav" });
+    workspace.trackMetadata.set(rightFile, { sampleRate, durationSamples, ext: ".wav" });
+    workspace.warnings.push(`${file.name} has different left/right channels; split into ${leftFile.name} and ${rightFile.name}.`);
+    output.push(leftFile, rightFile);
+  }
+  await context.close();
+  return output;
+}
+
+function channelsAreIdentical(left, right, epsilon = 1e-4) {
+  if (left.length !== right.length) return false;
+  for (let index = 0; index < left.length; index += 1) {
+    if (Math.abs(left[index] - right[index]) > epsilon) return false;
+  }
+  return true;
+}
+
+function encodeWavMono(samples, sampleRate) {
+  const dataSize = samples.length * 2;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  writeWavString(view, 0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeWavString(view, 8, "WAVE");
+  writeWavString(view, 12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeWavString(view, 36, "data");
+  view.setUint32(40, dataSize, true);
+  let offset = 44;
+  for (let index = 0; index < samples.length; index += 1, offset += 2) {
+    const clamped = Math.max(-1, Math.min(1, samples[index]));
+    view.setInt16(offset, clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff, true);
+  }
+  return new Blob([buffer], { type: "audio/wav" });
+}
+
+function writeWavString(view, offset, text) {
+  for (let index = 0; index < text.length; index += 1) view.setUint8(offset + index, text.charCodeAt(index));
+}
+
+function computeAudioSummary() {
+  const entries = workspace.files.map(
+    (file) => workspace.trackMetadata.get(file) ?? { sampleRate: null, durationSamples: 0, ext: extensionOf(file.name) }
+  );
+  const sampleRates = new Set(entries.map((entry) => entry.sampleRate).filter((rate) => rate != null));
+  const extensions = new Set(entries.map((entry) => entry.ext).filter(Boolean));
+  const sampleRate = sampleRates.size === 1 ? [...sampleRates][0] : 48000;
+  const durationSamples = entries.reduce((max, entry) => Math.max(max, entry.durationSamples), 0);
+  return {
+    sampleRate,
+    durationSamples,
+    durationSeconds: sampleRate ? Math.round(durationSamples / sampleRate) : 0,
+    extensions,
+    sampleRateMismatch: sampleRates.size > 1
+  };
 }
 
 function renderAudio(file) {

@@ -22,6 +22,8 @@ Implemented today:
 - Static Web preview compatible with GitHub Pages
 - Browser drag-and-drop and multiple-file selection
 - Visible table headers, read-only filenames, editable track names, and numeric channel mappings
+- Browser-side audio metadata (sample rate, duration, extension) via the Web Audio API
+- Browser-side stereo-to-mono channel splitting, with identical-channel detection
 - Browser `.uirecsession` download
 - Unit, integration, documentation, and benchmark checks
 
@@ -159,7 +161,7 @@ In GitHub repository settings, select `Settings > Pages > Source: GitHub
 Actions`. The workflow publishes `applications/web/` directly; no Node.js
 build or backend is required.
 
-The current preview supports local `.uirecsession` inspection, multiple local audio files, drag-and-drop, track editing, and local `.uirecsession` download. Browser-side audio decoding still requires the future Rust/WebAssembly adapter.
+The current preview supports local `.uirecsession` inspection, multiple local audio files, drag-and-drop, track editing, and local `.uirecsession` download. When raw audio files are added, the browser decodes them with the Web Audio API to compute the real sample rate, total duration, and file extension instead of placeholder values. Stereo files are decoded per channel: if the left and right channels differ, the file is split into two mono WAV tracks named `<name> - L.wav` and `<name> - R.wav`; if both channels are identical, the file is kept as a single track. Non-blocking warnings are shown when a file cannot be decoded or is split. Full browser-side FLAC conversion still requires the future Rust/WebAssembly adapter.
 
 The file picker intentionally lists explicit file extensions instead of the
 generic `audio/*` media type. This prevents Firefox Android from offering a
