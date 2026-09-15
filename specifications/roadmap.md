@@ -6,7 +6,7 @@
 |-------|--------|-------|
 | Phase 1 | Partially complete | Preliminary format documentation exists; sample corpus and complete validation tooling remain outstanding. |
 | Phase 2 | Complete | Rust workspace, domain model, validation engine, and WAV/FLAC/AIFF/MP3 metadata extraction are implemented and tested. |
-| Phase 3 | Complete | In-memory conversion, generic output, benchmark, file output, and generated-fixture tests are implemented. |
+| Phase 3 | Complete | In-memory conversion, generic output, benchmark, file output, generated-fixture tests, and panic-safe malformed/truncated-input hardening are implemented. |
 | Phase 4 | In progress | Validated configuration, folder generation, CLI audio conversion, ZIP export, and official fixture schema validation are implemented. |
 | Phase 5 | In progress | CLI analysis, conversion, and session creation commands are implemented. |
 | Phase 6 | Planned | WebAssembly bindings are not implemented yet. |
@@ -82,11 +82,15 @@ Implemented:
 - WAV-to-FLAC and FLAC-to-FLAC round-trip tests
 - AIFF-to-FLAC conversion test
 - WAV, FLAC, and AIFF metadata preservation tests
+- Malformed or truncated input hardening: metadata reading and FLAC
+  conversion catch decoder panics (`std::panic::catch_unwind`) and report a
+  controlled `Decode`/`ReadFailed` error instead of aborting the process,
+  verified against a deliberately truncated MP3 header and against the
+  real-world `Cri_wilhelm.mp3` fixture that previously failed decoding
 
 Remaining:
 
 - External WAV, FLAC, AIFF, and MP3 fixture corpus for compatibility hardening
-- MP3 malformed or truncated input hardening
 
 ---
 

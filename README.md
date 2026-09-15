@@ -15,6 +15,7 @@ Implemented today:
 - Session validation rules
 - WAV, FLAC, AIFF, and MP3 metadata extraction
 - WAV, FLAC, AIFF, and MP3 to FLAC conversion
+- Panic-safe handling of malformed or truncated audio inputs (decoder panics are caught and reported as errors instead of crashing)
 - Generic and native FLAC output
 - CLI audio analysis and conversion commands
 - CLI session creation from an audio directory
@@ -36,7 +37,6 @@ pending.
 Still in development:
 
 - External audio fixture corpus
-- MP3 decoder hardening for malformed or truncated files
 - ZIP export
 - Real Ui24R fixture validation is now included when the official example is present
 - Full session export with automatic audio conversion

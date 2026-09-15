@@ -55,7 +55,27 @@ impl FlacEncoder {
     ///
     /// The source bytes are decoded without modifying the source. WAV, FLAC,
     /// AIFF, and MP3 inputs are accepted according to `format`.
+    ///
+    /// Malformed or truncated inputs (in particular MP3 files that trigger an
+    /// internal decoder panic) are caught and reported as
+    /// [`AudioConversionError::Decode`] instead of aborting the process.
     pub fn convert_to_flac(
+        &self,
+        source: &[u8],
+        format: AudioFormat,
+    ) -> Result<Vec<u8>, AudioConversionError> {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            self.decode_and_encode(source, format)
+        }))
+        .unwrap_or_else(|_| {
+            Err(AudioConversionError::Decode(
+                "The audio decoder panicked while parsing a malformed or truncated input."
+                    .to_owned(),
+            ))
+        })
+    }
+
+    fn decode_and_encode(
         &self,
         source: &[u8],
         format: AudioFormat,
@@ -418,6 +438,35 @@ mod tests {
         std::fs::remove_file(destination).expect("test file should be removable");
 
         assert!(encoded.starts_with(b"fLaC"));
+    }
+
+    #[test]
+    fn rejects_truncated_mp3_sources_without_panicking() {
+        let truncated = [0xff, 0xfb, 0x90, 0x00, 0x00, 0x00, 0x00];
+
+        let result = FlacEncoder.convert_to_flac(&truncated, AudioFormat::Mp3);
+
+        assert!(
+            matches!(result, Err(AudioConversionError::Decode(_))),
+            "expected a controlled decode error: {result:?}"
+        );
+    }
+
+    #[test]
+    fn rejects_malformed_mp3_fixture_without_panicking() {
+        let fixture =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tmp/mp3/Cri_wilhelm.mp3");
+        if !fixture.is_file() {
+            return;
+        }
+        let source = std::fs::read(&fixture).expect("fixture should be readable");
+
+        let result = FlacEncoder.convert_to_flac(&source, AudioFormat::Mp3);
+
+        assert!(
+            matches!(result, Err(AudioConversionError::Decode(_))),
+            "expected a controlled decode error instead of a panic: {result:?}"
+        );
     }
 
     fn pcm_wav(samples: &[i16]) -> Vec<u8> {

@@ -16,6 +16,22 @@ impl AudioMetadataReader for SymphoniaMetadataReader {
         source: &[u8],
         format: AudioFormat,
     ) -> Result<AudioMetadata, AudioProcessingError> {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            Self::probe_metadata(source, format)
+        }))
+        .unwrap_or_else(|_| {
+            Err(AudioProcessingError::ReadFailed(
+                "The audio probe panicked while parsing a malformed or truncated input.".to_owned(),
+            ))
+        })
+    }
+}
+
+impl SymphoniaMetadataReader {
+    fn probe_metadata(
+        source: &[u8],
+        format: AudioFormat,
+    ) -> Result<AudioMetadata, AudioProcessingError> {
         if source.is_empty() {
             return Err(AudioProcessingError::ReadFailed(
                 "The audio source is empty.".to_owned(),
@@ -104,5 +120,14 @@ mod tests {
         let result = SymphoniaMetadataReader.read_metadata(&[0, 1, 2, 3], AudioFormat::Flac);
 
         assert!(matches!(result, Err(AudioProcessingError::ReadFailed(_))));
+    }
+
+    #[test]
+    fn rejects_truncated_mp3_sources_without_panicking() {
+        let truncated = [0xff, 0xfb, 0x90, 0x00, 0x00, 0x00, 0x00];
+
+        let result = SymphoniaMetadataReader.read_metadata(&truncated, AudioFormat::Mp3);
+
+        assert!(result.is_err(), "expected a controlled error: {result:?}");
     }
 }
