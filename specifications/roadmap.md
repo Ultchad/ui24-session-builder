@@ -16,6 +16,17 @@
 
 The project currently has no WebAssembly processing layer or real-device compatibility validation workflow.
 
+## Immediate next tasks / TODO
+
+- [x] Finalize browser export semantics: FLAC remains the default target, explicit WAV conversion is the only implemented browser conversion, and MP3 is not silently renamed
+- [x] Fix session packaging and naming bugs: `.uirecsession` is written with the exact required filename and the ZIP includes only the active session files
+- [x] Harden the decode pipeline against malformed/truncated inputs, especially MP3 playback edge cases
+- [ ] Implement the missing Rust/WebAssembly bridge so browser-side FLAC conversion works without manual preparation
+- [ ] Add a real MP3 encoder path or remove MP3 export from the user-facing options until it is implemented
+- [ ] Validate generated sessions on a real Ui24R mixer using the official fixture set and a physical SD/USB export flow
+- [ ] Expand browser/mobile verification for Firefox Android, track removal reliability, and download behavior
+- [ ] Move from a static browser preview to a broader desktop/mobile distribution target once the core workflow is proven end-to-end
+
 Development tooling now documents matching Rust compiler, `rust-src`,
 rust-analyzer, rustfmt, and Clippy installation for Debian stable and
 backports.

@@ -46,6 +46,17 @@ Still in development:
 - Desktop applications for Windows and Linux
 - Android and iOS applications
 
+Immediate TODO list:
+
+- [x] Align browser export semantics with the actual implementation status: default FLAC, explicit WAV conversion only, no silent MP3-to-WAV renaming
+- [x] Fix `.uirecsession` naming, active-file ZIP packaging, and stereo split handling in the browser workflow
+- [x] Harden malformed/truncated input handling in the shared audio decode pipeline
+- [ ] Complete the Rust/WebAssembly browser bridge for in-browser FLAC conversion
+- [ ] Add a real MP3 encoder or remove MP3 export from the UI/CLI surface until it is implemented
+- [ ] Validate generated sessions against a real Ui24R device with official fixture files
+- [ ] Extend browser and Android test coverage for Firefox/Chrome mobile behavior and file downloads
+- [ ] Package desktop and mobile targets once the shared Rust core is stabilized
+
 See [specifications/roadmap.md](specifications/roadmap.md) for the detailed phase status.
 
 ## Installation
