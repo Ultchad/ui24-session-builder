@@ -10,7 +10,7 @@
 | Phase 4 | In progress | Validated configuration, folder generation, CLI audio conversion, ZIP export, and official fixture schema validation are implemented. |
 | Phase 5 | In progress | CLI analysis, conversion, and session creation commands are implemented. |
 | Phase 6 | Planned | WebAssembly bindings are not implemented yet. |
-| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, browser-side audio metadata (sample rate, duration, extension) via the Web Audio API, stereo-to-mono channel splitting with identical-channel detection, and `.uirecsession` download are available; shared Rust/WASM processing is still pending. Microphone capture is explicitly deferred. |
+| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, browser-side audio metadata (sample rate, duration, extension) via the Web Audio API, stereo-to-mono channel splitting with identical-channel detection, in-browser ZIP session packaging, and `.uirecsession` download are available; shared Rust/WASM FLAC processing is still pending. Microphone capture is explicitly deferred. |
 | Phase 8 | In progress | GitHub Pages deployment workflow is configured for `main`. |
 | Phase 9 | Planned | No Flutter application implementation yet. |
 
@@ -194,6 +194,10 @@ Implemented:
   the file is kept as a single mono-equivalent track instead
 - Non-blocking warnings shown in the UI when a file cannot be decoded or
   when a stereo file is split
+- Browser-side ZIP session packaging: a store-only (uncompressed) ZIP
+  writer implemented in plain JavaScript bundles the actual local audio
+  files together with `session.uirecsession` into a downloadable
+  `session.zip`, without any external library or Node.js build step
 
 The browser file picker deliberately avoids the generic `audio/*` accept type,
 so Firefox Android does not offer microphone recording. No microphone
@@ -203,7 +207,8 @@ explicit feature.
 Remaining:
 
 - Rust/WASM audio processing
-- Browser-side FLAC export
+- Browser-side FLAC export (the ZIP package currently bundles source audio
+  as-is, typically WAV, instead of FLAC)
 
 ---
 

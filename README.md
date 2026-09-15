@@ -25,6 +25,7 @@ Implemented today:
 - Browser-side audio metadata (sample rate, duration, extension) via the Web Audio API
 - Browser-side stereo-to-mono channel splitting, with identical-channel detection
 - Browser `.uirecsession` download
+- Browser-side ZIP session packaging (audio files plus `.uirecsession`, no external library)
 - Unit, integration, documentation, and benchmark checks
 
 The Phase 4 generator can now create and validate a `.uirecsession` JSON
@@ -161,7 +162,7 @@ In GitHub repository settings, select `Settings > Pages > Source: GitHub
 Actions`. The workflow publishes `applications/web/` directly; no Node.js
 build or backend is required.
 
-The current preview supports local `.uirecsession` inspection, multiple local audio files, drag-and-drop, track editing, and local `.uirecsession` download. When raw audio files are added, the browser decodes them with the Web Audio API to compute the real sample rate, total duration, and file extension instead of placeholder values. Stereo files are decoded per channel: if the left and right channels differ, the file is split into two mono WAV tracks named `<name> - L.wav` and `<name> - R.wav`; if both channels are identical, the file is kept as a single track. Non-blocking warnings are shown when a file cannot be decoded or is split. Full browser-side FLAC conversion still requires the future Rust/WebAssembly adapter.
+The current preview supports local `.uirecsession` inspection, multiple local audio files, drag-and-drop, track editing, and local `.uirecsession` download. When raw audio files are added, the browser decodes them with the Web Audio API to compute the real sample rate, total duration, and file extension instead of placeholder values. Stereo files are decoded per channel: if the left and right channels differ, the file is split into two mono WAV tracks named `<name> - L.wav` and `<name> - R.wav`; if both channels are identical, the file is kept as a single track. Non-blocking warnings are shown when a file cannot be decoded or is split. A session can also be downloaded as a `session.zip` package containing the actual local audio files plus `session.uirecsession`, built entirely client-side with a small store-only ZIP writer (no external library). Full browser-side FLAC conversion still requires the future Rust/WebAssembly adapter, so packaged audio currently keeps its source format (typically WAV).
 
 The file picker intentionally lists explicit file extensions instead of the
 generic `audio/*` media type. This prevents Firefox Android from offering a

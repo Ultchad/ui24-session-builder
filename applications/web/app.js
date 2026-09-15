@@ -103,7 +103,12 @@ function editableTracks() {
 }
 
 function actions() {
-  return `<div class="actions"><button id="download-session" type="button">Download .uirecsession</button><button id="clear-workspace" class="secondary" type="button">Clear</button></div>`;
+  const canPackage = workspace.files.length > 0;
+  return `<div class="actions">
+    <button id="download-session" type="button">Download .uirecsession</button>
+    ${canPackage ? '<button id="download-package" type="button">Download session .zip</button>' : ""}
+    <button id="clear-workspace" class="secondary" type="button">Clear</button>
+  </div>`;
 }
 
 function bindEditor() {
@@ -120,6 +125,8 @@ function bindEditor() {
     workspace.session ? renderSession(workspace.session, "edited session") : renderAudioFiles();
   }));
   result.querySelector("#download-session").addEventListener("click", downloadSession);
+  const packageButton = result.querySelector("#download-package");
+  if (packageButton) packageButton.addEventListener("click", downloadSessionPackage);
   result.querySelector("#clear-workspace").addEventListener("click", () => {
     workspace.session = null;
     workspace.files = [];
@@ -166,6 +173,90 @@ function downloadSession() {
   link.download = "session.uirecsession";
   link.click();
   URL.revokeObjectURL(link.href);
+}
+
+// Bundles the session JSON with the actual local audio bytes into a ZIP,
+// so a usable session package can be produced fully client-side.
+async function downloadSessionPackage() {
+  updateSessionFromEditor();
+  const entries = [];
+  for (const file of workspace.files) {
+    entries.push({ name: file.name, data: new Uint8Array(await file.arrayBuffer()) });
+  }
+  entries.push({
+    name: "session.uirecsession",
+    data: new TextEncoder().encode(JSON.stringify(workspace.session, null, 2))
+  });
+  const blob = buildZip(entries);
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "session.zip";
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+// Minimal store-only (uncompressed) ZIP writer: no external dependency and
+// no Node.js build step, matching the rest of this static Web app.
+function buildZip(entries) {
+  const encoder = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  for (const entry of entries) {
+    const nameBytes = encoder.encode(entry.name);
+    const crc = crc32(entry.data);
+    const size = entry.data.length;
+
+    const localHeader = new DataView(new ArrayBuffer(30));
+    localHeader.setUint32(0, 0x04034b50, true);
+    localHeader.setUint16(6, 0, true);
+    localHeader.setUint16(8, 0, true);
+    localHeader.setUint32(14, crc, true);
+    localHeader.setUint32(18, size, true);
+    localHeader.setUint32(22, size, true);
+    localHeader.setUint16(26, nameBytes.length, true);
+    localParts.push(new Uint8Array(localHeader.buffer), nameBytes, entry.data);
+
+    const centralHeader = new DataView(new ArrayBuffer(46));
+    centralHeader.setUint32(0, 0x02014b50, true);
+    centralHeader.setUint16(6, 20, true);
+    centralHeader.setUint32(16, crc, true);
+    centralHeader.setUint32(20, size, true);
+    centralHeader.setUint32(24, size, true);
+    centralHeader.setUint16(28, nameBytes.length, true);
+    centralHeader.setUint32(42, offset, true);
+    centralParts.push(new Uint8Array(centralHeader.buffer), nameBytes);
+
+    offset += localHeader.byteLength + nameBytes.length + size;
+  }
+
+  const centralStart = offset;
+  const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+
+  const endRecord = new DataView(new ArrayBuffer(22));
+  endRecord.setUint32(0, 0x06054b50, true);
+  endRecord.setUint16(8, entries.length, true);
+  endRecord.setUint16(10, entries.length, true);
+  endRecord.setUint32(12, centralSize, true);
+  endRecord.setUint32(16, centralStart, true);
+
+  return new Blob([...localParts, ...centralParts, new Uint8Array(endRecord.buffer)], { type: "application/zip" });
+}
+
+let crcTable;
+function crc32(data) {
+  if (!crcTable) {
+    crcTable = new Uint32Array(256);
+    for (let n = 0; n < 256; n += 1) {
+      let value = n;
+      for (let k = 0; k < 8; k += 1) value = value & 1 ? (0xedb88320 ^ (value >>> 1)) : value >>> 1;
+      crcTable[n] = value >>> 0;
+    }
+  }
+  let crc = 0xffffffff;
+  for (let index = 0; index < data.length; index += 1) crc = crcTable[(crc ^ data[index]) & 0xff] ^ (crc >>> 8);
+  return (crc ^ 0xffffffff) >>> 0;
 }
 
 function isSessionFile(name) {
