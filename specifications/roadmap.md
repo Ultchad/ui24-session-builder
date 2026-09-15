@@ -20,6 +20,12 @@ Development tooling now documents matching Rust compiler, `rust-src`,
 rust-analyzer, rustfmt, and Clippy installation for Debian stable and
 backports.
 
+`documentation/developer_guides/coding_standards.md`,
+`documentation/developer_guides/testing_strategy.md`, and
+`documentation/developer_guides/localization.md` are now filled in,
+describing the conventions already enforced in the workspace instead of
+remaining empty placeholders.
+
 ## Phase 1
 
 Reverse engineering
