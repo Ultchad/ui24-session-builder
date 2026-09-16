@@ -24,6 +24,7 @@ Implemented today:
 - Browser drag-and-drop and multiple-file selection
 - Visible table headers, read-only filenames, editable track names, and numeric channel mappings
 - Browser-side audio metadata (sample rate, duration, extension) via the Web Audio API
+- Projected destination extensions (`.flac` or `.wav`) are shown immediately in the browser table and session JSON; conversion remains deferred until export
 - Browser-side stereo-to-mono channel splitting, with identical-channel detection
 - Browser-side destination-format selector with local Rust/WebAssembly FLAC conversion, explicit WAV conversion, and MP3 disabled until an encoder exists
 - Browser `.uirecsession` download

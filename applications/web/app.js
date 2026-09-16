@@ -86,6 +86,7 @@ async function handleFiles(fileList) {
 
 function renderSession(session, filename) {
   setResultsState(false);
+  result.classList.remove("empty-state");
   const files = Array.isArray(session.files) ? session.files : [];
   const mappings = Array.isArray(session.mapping) ? session.mapping : [];
   const names = Array.isArray(session.names) ? session.names : files;
@@ -107,9 +108,10 @@ function renderSession(session, filename) {
 
 function renderAudioFiles() {
   setResultsState(false);
+  result.classList.remove("empty-state");
   const files = workspace.files;
   const summary = computeAudioSummary();
-  const extensionLabel = summary.extensions.size === 1 ? [...summary.extensions][0] : `${summary.extensions.size} formats`;
+  const extensionLabel = `.${workspace.outputFormat}`;
   result.innerHTML = `
     <div class="summary">
       ${metric("Files", files.length)}
@@ -135,11 +137,11 @@ function formatSelector() {
       <option value="mp3" disabled>MP3 (not implemented)</option>
     </select>
   </label>
-  <p class="privacy">FLAC conversion runs locally through the Rust/WebAssembly bridge. WAV remains available for local exports; MP3 is not implemented.</p>`;
+  <p class="privacy">Displayed extensions are the selected export projection; conversion runs when the ZIP is created. FLAC uses Rust/WebAssembly, WAV is supported, and MP3 is not implemented.</p>`;
 }
 
 function editableTracks() {
-  const tracks = workspace.session ? workspace.session.files : workspace.files.map((file) => file.name);
+  const tracks = workspace.session ? workspace.session.files : workspace.files.map(projectedFileName);
   const names = workspace.session?.names ?? tracks.map(stripExtension);
   const mappings = workspace.session?.mapping ?? tracks.map((_, index) => `i.${index}`);
   return `<div class="track-list" role="table" aria-label="Session tracks">
@@ -217,7 +219,7 @@ function updateSessionFromEditor() {
     workspace.session = {
       complete: false,
       ext: `.${workspace.outputFormat}`,
-      files: workspace.files.map((file) => stripExtension(file.name)),
+      files: workspace.files.map((file) => stripExtension(projectedFileName(file))),
       names,
       mapping,
       sampleRate: summary.sampleRate,
@@ -392,6 +394,10 @@ function stripExtension(name) {
   return name.replace(/\.[^.]+$/, "");
 }
 
+function projectedFileName(file) {
+  return `${stripExtension(file.name)}.${workspace.outputFormat}`;
+}
+
 function mappingNumber(mapping, fallback) {
   const value = String(mapping ?? "").replace(/^i\./, "");
   return /^\d+$/.test(value) ? value : String(fallback);
@@ -456,7 +462,7 @@ async function processAudioInputs(files) {
         const splitFiles = [leftFile, rightFile];
         workspace.trackMetadata.set(leftFile, { sampleRate, durationSamples, ext: ".wav" });
         workspace.trackMetadata.set(rightFile, { sampleRate, durationSamples, ext: ".wav" });
-        workspace.warnings.push(`${file.name} has different left/right channels; split into ${leftFile.name} and ${rightFile.name}.`);
+        workspace.warnings.push(`${file.name} has different left/right channels; split into ${projectedFileName(leftFile)} and ${projectedFileName(rightFile)}.`);
         output.push(...splitFiles);
         continue;
       }
