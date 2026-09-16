@@ -8,4 +8,4 @@ if ! command -v wasm-pack >/dev/null 2>&1; then
 fi
 
 cargo build --target wasm32-unknown-unknown -p ui24_audio_processing
-wasm-pack build --target web --release --out-dir applications/web/wasm libraries/audio_processing
+wasm-pack build --target web --release --out-dir "$PWD/applications/web/wasm" libraries/audio_processing
