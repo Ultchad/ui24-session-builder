@@ -21,9 +21,10 @@
 
 - Vérifier le menu repliable "How to prepare the USB key for the Ui24R" et que les instructions correspondent bien à la structure FAT32/Multitrack/session-folder demandée par le mixer.
 - Glisser-déposer plusieurs fichiers audio (WAV, MP3, mélange) et vérifier que la durée/sample rate/extension affichés sont corrects.
-- Vérifier que le sélecteur est positionné sur `FLAC (WASM)`, qu’un WAV/AIFF/MP3 importé produit un fichier `.flac` dans le tableau et que le ZIP contient bien ces fichiers FLAC.
+- Vérifier que l’analyse d’un WAV/AIFF/MP3 affiche rapidement ses métadonnées sans conversion et que le sélecteur est positionné sur `FLAC (WASM)`.
+- Cliquer sur `Download session .zip` puis vérifier que le badge de statut affiche `Converting 1/N`, `Converting 2/N`, etc., et que le ZIP contient les fichiers `.flac`.
 - Tester un vrai fichier stéréo avec canaux différents (ex. musique stéréo normale) → doit se scinder en `<nom> L.flac` / `<nom> R.flac` (sans tiret) avec le format FLAC sélectionné, avec message d'avertissement visible.
-- Après conversion FLAC, vérifier que les deux pistes issues du split sont nommées `<nom> L.flac` / `<nom> R.flac` dans le tableau et dans le ZIP.
+- Vérifier que les deux pistes issues du split restent immédiatement éditables, puis que le ZIP les contient sous les noms `<nom> L.flac` / `<nom> R.flac` après export.
 - Tester un fichier stéréo dupliqué (mêmes canaux L/R) → doit rester un seul fichier, sans split.
 - Modifier les noms de pistes et les mappings dans le tableau, puis télécharger le .uirecsession → vérifier le contenu.
 - Vérifier que le fichier téléchargé s'appelle exactement `.uirecsession` (pas `session.uirecsession`) — c'est le nom exact attendu par le Ui24R.

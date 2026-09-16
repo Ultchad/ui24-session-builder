@@ -38,7 +38,10 @@ h2 { margin-bottom: 0; font-size: clamp(28px, 4vw, 46px); line-height: 1; font-w
 .workspace, .results { border-top: 1px solid var(--line); padding: 28px 0 34px; }
 .results.is-empty { display: none; }
 .section-heading { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin-bottom: 24px; }
-.status { padding: 7px 10px; border: 1px solid var(--line); color: var(--teal); font: 700 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+.status { display: inline-flex; align-items: center; gap: 8px; min-width: 132px; padding: 7px 10px; border: 1px solid var(--line); color: var(--teal); font: 700 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+.status.is-busy { border-color: var(--accent); color: var(--accent-dark); }
+.status.is-busy::before { width: 8px; height: 8px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; content: ""; animation: status-spin .7s linear infinite; }
+@keyframes status-spin { to { transform: rotate(360deg); } }
 .dropzone { min-height: 220px; display: grid; place-items: center; align-content: center; gap: 9px; border: 1px dashed var(--accent); background: color-mix(in srgb, var(--panel) 82%, transparent); text-align: center; cursor: pointer; }
 .dropzone:hover, .dropzone:focus-within { background: #fff7e8; }
 .dropzone.is-dragging { background: #ffe8d8; border-width: 2px; transform: translateY(-2px); }

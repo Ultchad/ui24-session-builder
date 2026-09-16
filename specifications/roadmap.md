@@ -228,9 +228,9 @@ Implemented:
 - Browser `.uirecsession` download
 - Docker preview on host port 8080
 - Browser-side audio metadata: sample rate, total duration, and file
-  extension are computed from raw audio files via the Web Audio API
-  (`decodeAudioData`), while destination FLAC encoding uses the shipped
-  Rust/WASM adapter
+  extension are computed from original audio files via the Web Audio API
+  (`decodeAudioData`); destination conversion is deferred until ZIP export
+  and uses the selected WAV encoder or shipped Rust/WASM adapter
 - USB prep guidance shown in the web UI and CLI help: format as FAT32,
   create a root `Multitrack` folder, and store each session in its own
   subfolder with the ZIP contents inside it
@@ -243,7 +243,8 @@ Implemented:
 - Browser-side ZIP session packaging: a store-only (uncompressed) ZIP
   writer implemented in plain JavaScript bundles the actual local audio
   files together with `.uirecsession` into a downloadable `session.zip`,
-  without any external library or Node.js build step
+  converting files only during export and reporting progress in the status
+  badge, without any external library or Node.js build step
 - Destination-format selector: a "Destination format" dropdown lets the
   user pick the output container for raw audio files. `flac` is the default
   and is encoded locally by the shipped Rust/WASM adapter; `wav` is also
