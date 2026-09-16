@@ -2,17 +2,42 @@ const input = document.querySelector("#file-input");
 const status = document.querySelector("#status");
 const result = document.querySelector("#result-content");
 const dropzone = document.querySelector("#dropzone");
+const resultsPanel = document.querySelector(".results");
 let wasmBridge = null;
 const workspace = {
   session: null,
   files: [],
+  originalFiles: [],
   trackMetadata: new Map(),
   warnings: [],
-  // The browser keeps the source format unless the user explicitly selects
-  // WAV conversion. FLAC is the default destination format in the UI, even
-  // though the shared Rust/WebAssembly adapter is still pending.
-  outputFormat: "flac"
+  // The browser only exposes the format that is currently implemented.
+  // FLAC conversion is intentionally unavailable in the browser UI until the
+  // Wasm bridge is present in the shipped static bundle.
+  outputFormat: "wav"
 };
+
+function setResultsState(isEmpty) {
+  if (!resultsPanel) return;
+  resultsPanel.classList.toggle("is-empty", isEmpty);
+  resultsPanel.hidden = isEmpty;
+}
+
+setResultsState(true);
+
+function resetToEmptyState() {
+  workspace.session = null;
+  workspace.files = [];
+  workspace.originalFiles = [];
+  workspace.trackMetadata = new Map();
+  workspace.warnings = [];
+  setResultsState(true);
+  if (result) {
+    result.innerHTML = '<div class="empty-state">Select or drop files to build a local session.</div>';
+  }
+  if (status) {
+    status.textContent = "Waiting for a file";
+  }
+}
 
 input.addEventListener("change", () => handleFiles(input.files));
 dropzone.addEventListener("dragover", (event) => {
@@ -30,20 +55,24 @@ async function handleFiles(fileList) {
   const files = Array.from(fileList);
   if (!files.length) return;
   status.textContent = "Reading locally";
+  setResultsState(false);
   try {
     const sessionFile = files.find((file) => isSessionFile(file.name));
     if (sessionFile) {
       workspace.session = JSON.parse(await sessionFile.text());
       workspace.files = [];
+      workspace.originalFiles = [];
       workspace.trackMetadata = new Map();
       workspace.warnings = [];
       renderSession(workspace.session, sessionFile.name);
     } else {
       workspace.session = null;
       workspace.warnings = [];
+      const audioFiles = files.filter(isAudioFile);
+      workspace.originalFiles = [...audioFiles];
       status.textContent = "Analyzing audio";
-      const processed = await processAudioInputs(files.filter(isAudioFile));
-      workspace.files.push(...processed);
+      const processed = await processAudioInputs(audioFiles);
+      workspace.files = processed;
       renderAudioFiles();
     }
     status.textContent = "Ready";
@@ -54,6 +83,7 @@ async function handleFiles(fileList) {
 }
 
 function renderSession(session, filename) {
+  setResultsState(false);
   const files = Array.isArray(session.files) ? session.files : [];
   const mappings = Array.isArray(session.mapping) ? session.mapping : [];
   const names = Array.isArray(session.names) ? session.names : files;
@@ -74,6 +104,7 @@ function renderSession(session, filename) {
 }
 
 function renderAudioFiles() {
+  setResultsState(false);
   const files = workspace.files;
   const summary = computeAudioSummary();
   const extensionLabel = summary.extensions.size === 1 ? [...summary.extensions][0] : `${summary.extensions.size} formats`;
@@ -92,15 +123,17 @@ function renderAudioFiles() {
 }
 
 function formatSelector() {
+  const selected = workspace.outputFormat === "flac" ? "wav" : workspace.outputFormat;
+  const flacEnabled = false;
   return `<label class="format-select">
     <span>Destination format</span>
     <select id="output-format">
-      <option value="flac" ${workspace.outputFormat === "flac" ? "selected" : ""}>FLAC (default, pending WebAssembly)</option>
-      <option value="wav" ${workspace.outputFormat === "wav" ? "selected" : ""}>WAV (implemented)</option>
+      <option value="flac" ${selected === "flac" ? "selected" : ""} ${flacEnabled ? "" : "disabled"}>FLAC (browser bridge unavailable)</option>
+      <option value="wav" ${selected === "wav" ? "selected" : ""}>WAV (implemented)</option>
       <option value="mp3" disabled>MP3 (not implemented)</option>
     </select>
   </label>
-  <p class="privacy">FLAC is the default target name in the UI; MP3 files are left as-is unless an explicit WAV conversion is chosen. Only FLAC is confirmed compatible with real Ui24R hardware.</p>`;
+  <p class="privacy">Only explicit WAV conversion is available in the browser. FLAC conversion is intentionally disabled here until the Wasm bridge is shipped with the static bundle.</p>`;
 }
 
 function editableTracks() {
@@ -141,6 +174,9 @@ function bindEditor() {
     const isRawAudio = workspace.files.length > 0;
     if (isRawAudio) {
       const [removed] = workspace.files.splice(index, 1);
+      if (workspace.originalFiles.length) {
+        workspace.originalFiles.splice(index, 1);
+      }
       workspace.trackMetadata.delete(removed);
     }
     if (workspace.session) {
@@ -157,21 +193,16 @@ function bindEditor() {
   if (formatField) formatField.addEventListener("change", async (event) => {
     workspace.outputFormat = event.target.value;
     status.textContent = "Re-encoding audio";
-    const files = workspace.files;
+    const sourceFiles = workspace.originalFiles.length ? workspace.originalFiles : workspace.files;
     workspace.files = [];
     workspace.trackMetadata = new Map();
     workspace.warnings = [];
-    workspace.files.push(...(await processAudioInputs(files)));
+    workspace.files.push(...(await processAudioInputs(sourceFiles)));
     renderAudioFiles();
     status.textContent = "Ready";
   });
   result.querySelector("#clear-workspace").addEventListener("click", () => {
-    workspace.session = null;
-    workspace.files = [];
-    workspace.trackMetadata = new Map();
-    workspace.warnings = [];
-    result.innerHTML = '<div class="empty-state">Select or drop files to build a local session.</div>';
-    status.textContent = "Waiting for a file";
+    resetToEmptyState();
   });
 }
 
@@ -389,7 +420,8 @@ async function processAudioInputs(files) {
       for (let channel = 0; channel < numberOfChannels; channel += 1) {
         channels.push(buffer.getChannelData(channel));
       }
-      const wavFile = new File([encodeWavPcm(channels, sampleRate)], `${stripExtension(file.name)}.wav`, { type: "audio/wav" });
+        const wavName = `${stripExtension(file.name)}.wav`;
+        const wavFile = new File([encodeWavPcm(channels, sampleRate)], wavName, { type: "audio/wav" });
       workspace.trackMetadata.set(wavFile, { sampleRate, durationSamples, ext: ".wav" });
       workspace.warnings.push(`${file.name} was decoded and converted to WAV (${wavFile.name}).`);
       output.push(wavFile);
@@ -397,17 +429,10 @@ async function processAudioInputs(files) {
     }
 
     if (workspace.outputFormat === "flac" && extension !== ".flac") {
-      const bridge = await ensureWasmBridge();
-      if (bridge && typeof bridge.convertAudioToFlacBytes === "function") {
-        const sourceBytes = new Uint8Array(await file.arrayBuffer());
-        const convertedBytes = bridge.convertAudioToFlacBytes(sourceBytes, extension.replace(/^\./, ""));
-        const flacFile = new File([convertedBytes], `${stripExtension(file.name)}.flac`, { type: "audio/flac" });
-        workspace.trackMetadata.set(flacFile, { sampleRate, durationSamples, ext: ".flac" });
-        workspace.warnings.push(`${file.name} was decoded and converted to FLAC via the Rust/WASM bridge (${flacFile.name}).`);
-        output.push(flacFile);
-        continue;
-      }
-      workspace.warnings.push(`${file.name} kept as-is because the browser-side FLAC bridge is unavailable.`);
+      workspace.warnings.push(`${file.name} was kept as-is because browser-side FLAC conversion is unavailable in the shipped static bundle.`);
+      workspace.trackMetadata.set(file, { sampleRate, durationSamples, ext: extension });
+      output.push(file);
+      continue;
     }
 
     workspace.trackMetadata.set(file, { sampleRate, durationSamples, ext: extension });
