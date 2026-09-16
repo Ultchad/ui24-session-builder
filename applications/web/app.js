@@ -10,10 +10,7 @@ const workspace = {
   originalFiles: [],
   trackMetadata: new Map(),
   warnings: [],
-  // The browser only exposes the format that is currently implemented.
-  // FLAC conversion is intentionally unavailable in the browser UI until the
-  // Wasm bridge is present in the shipped static bundle.
-  outputFormat: "wav"
+  outputFormat: "flac"
 };
 
 function setResultsState(isEmpty) {
@@ -123,17 +120,17 @@ function renderAudioFiles() {
 }
 
 function formatSelector() {
-  const selected = workspace.outputFormat === "flac" ? "wav" : workspace.outputFormat;
-  const flacEnabled = false;
+  const selected = workspace.outputFormat;
+  const flacEnabled = Boolean(wasmBridge);
   return `<label class="format-select">
     <span>Destination format</span>
     <select id="output-format">
-      <option value="flac" ${selected === "flac" ? "selected" : ""} ${flacEnabled ? "" : "disabled"}>FLAC (browser bridge unavailable)</option>
+      <option value="flac" ${selected === "flac" ? "selected" : ""} ${flacEnabled ? "" : "disabled"}>FLAC (WASM)</option>
       <option value="wav" ${selected === "wav" ? "selected" : ""}>WAV (implemented)</option>
       <option value="mp3" disabled>MP3 (not implemented)</option>
     </select>
   </label>
-  <p class="privacy">Only explicit WAV conversion is available in the browser. FLAC conversion is intentionally disabled here until the Wasm bridge is shipped with the static bundle.</p>`;
+  <p class="privacy">FLAC conversion runs locally through the Rust/WebAssembly bridge. WAV remains available for local exports; MP3 is not implemented.</p>`;
 }
 
 function editableTracks() {
@@ -357,13 +354,11 @@ async function ensureWasmBridge() {
   if (wasmBridge) return wasmBridge;
   try {
     const module = await import("./wasm/ui24_audio_processing.js");
-    if (module.init) {
-      await module.init();
-    }
+    await module.default();
     wasmBridge = module;
     return module;
   } catch (error) {
-    console.warn("WASM FLAC bridge unavailable; browser conversion is skipped until the generated module is present.", error);
+    console.warn("WASM FLAC bridge unavailable; the original file will be kept.", error);
     return null;
   }
 }
@@ -407,10 +402,10 @@ async function processAudioInputs(files) {
         const baseName = stripExtension(file.name);
         const leftFile = new File([encodeWavPcm([left], sampleRate)], `${baseName} L.wav`, { type: "audio/wav" });
         const rightFile = new File([encodeWavPcm([right], sampleRate)], `${baseName} R.wav`, { type: "audio/wav" });
-        workspace.trackMetadata.set(leftFile, { sampleRate, durationSamples, ext: ".wav" });
-        workspace.trackMetadata.set(rightFile, { sampleRate, durationSamples, ext: ".wav" });
-        workspace.warnings.push(`${file.name} has different left/right channels; split into ${leftFile.name} and ${rightFile.name}.`);
-        output.push(leftFile, rightFile);
+        const splitFiles = [leftFile, rightFile];
+        const convertedSplitFiles = await convertFilesToFlac(splitFiles, file.name, { sampleRate, durationSamples });
+        workspace.warnings.push(`${file.name} has different left/right channels; split into ${convertedSplitFiles.map((splitFile) => splitFile.name).join(" and ")}.`);
+        output.push(...convertedSplitFiles);
         continue;
       }
     }
@@ -429,9 +424,8 @@ async function processAudioInputs(files) {
     }
 
     if (workspace.outputFormat === "flac" && extension !== ".flac") {
-      workspace.warnings.push(`${file.name} was kept as-is because browser-side FLAC conversion is unavailable in the shipped static bundle.`);
-      workspace.trackMetadata.set(file, { sampleRate, durationSamples, ext: extension });
-      output.push(file);
+      const [convertedFile] = await convertFilesToFlac([file], file.name, { sampleRate, durationSamples });
+      output.push(convertedFile);
       continue;
     }
 
@@ -439,6 +433,31 @@ async function processAudioInputs(files) {
     output.push(file);
   }
   await context.close();
+  return output;
+}
+
+async function convertFilesToFlac(files, sourceName, metadata = null) {
+  const bridge = await ensureWasmBridge();
+  if (!bridge || typeof bridge.convert_audio_to_flac_bytes !== "function") {
+    workspace.warnings.push(`${sourceName} was kept as-is because the browser FLAC bridge could not be loaded.`);
+    return files;
+  }
+
+  const output = [];
+  for (const file of files) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const convertedBytes = bridge.convert_audio_to_flac_bytes(bytes, extensionOf(file.name));
+    if (!convertedBytes.length) {
+      workspace.warnings.push(`${file.name} was kept as-is because FLAC conversion failed.`);
+      workspace.trackMetadata.set(file, metadata ?? { sampleRate: null, durationSamples: 0, ext: extensionOf(file.name) });
+      output.push(file);
+      continue;
+    }
+    const flacFile = new File([convertedBytes], `${stripExtension(file.name)}.flac`, { type: "audio/flac" });
+    workspace.trackMetadata.set(flacFile, metadata ?? workspace.trackMetadata.get(file) ?? { sampleRate: null, durationSamples: 0, ext: ".flac" });
+    workspace.trackMetadata.get(flacFile).ext = ".flac";
+    output.push(flacFile);
+  }
   return output;
 }
 

@@ -9,12 +9,12 @@
 | Phase 3 | Complete | In-memory conversion, generic output, benchmark, file output, generated-fixture tests, panic-safe malformed/truncated-input hardening, and a WAV output encoder sharing the same decode stage are implemented. |
 | Phase 4 | In progress | Validated configuration, folder generation, CLI audio conversion, ZIP export, official fixture schema validation, and a configurable destination audio extension are implemented. |
 | Phase 5 | In progress | CLI analysis, conversion, and session creation commands are implemented, including a `--format flac\|wav\|mp3` destination-format option (`mp3` not yet implemented). |
-| Phase 6 | Planned | WebAssembly bindings are not implemented yet. |
-| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, browser-side audio metadata (sample rate, duration, extension) via the Web Audio API, stereo-to-mono channel splitting with identical-channel detection, a destination-format selector that defaults to FLAC while keeping source files intact unless a WAV conversion is explicitly chosen, in-browser ZIP session packaging, and `.uirecsession` download are available; shared Rust/WASM FLAC processing is still pending. Microphone capture is explicitly deferred. |
+| Phase 6 | Complete | Rust/WASM bindings and the generated browser bundle convert supported browser audio sources to FLAC locally, with a fallback when the module cannot be loaded. |
+| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, Web Audio metadata, stereo-to-mono splitting, Rust/WASM FLAC conversion, WAV conversion, in-browser ZIP packaging, and `.uirecsession` download are available. Microphone capture is explicitly deferred. |
 | Phase 8 | In progress | GitHub Pages deployment workflow is configured for `main`. |
 | Phase 9 | Planned | No Flutter application implementation yet. |
 
-The project currently has no WebAssembly processing layer or real-device compatibility validation workflow.
+The project has a browser WebAssembly processing layer; real-device compatibility validation remains outstanding.
 
 ## Immediate next tasks / TODO
 
@@ -22,7 +22,7 @@ The project currently has no WebAssembly processing layer or real-device compati
 - [x] Fix session packaging and naming bugs: `.uirecsession` is written with the exact required filename and the ZIP includes only the active session files
 - [x] Harden the decode pipeline against malformed/truncated inputs, especially MP3 playback edge cases
 - [x] Document the required USB layout for the Ui24R: FAT32 key, root `Multitrack` folder, and one folder per session containing the ZIP contents
-- [x] Add the Rust/WASM bridge entry point and browser loader for FLAC conversion, with a clear fallback that keeps the original file when the generated module is missing
+- [x] Add and ship the Rust/WASM bridge and browser loader for FLAC conversion, including stereo-split tracks and a fallback when the generated module is missing
 - [ ] Add a real MP3 encoder path or remove MP3 export from the user-facing options until it is implemented
 - [ ] Validate generated sessions on a real Ui24R mixer using the official fixture set and a physical SD/USB export flow
 - [ ] Expand browser/mobile verification for Firefox Android, track removal reliability, and download behavior
@@ -229,14 +229,15 @@ Implemented:
 - Docker preview on host port 8080
 - Browser-side audio metadata: sample rate, total duration, and file
   extension are computed from raw audio files via the Web Audio API
-  (`decodeAudioData`), without requiring the pending Rust/WASM adapter
+  (`decodeAudioData`), while destination FLAC encoding uses the shipped
+  Rust/WASM adapter
 - USB prep guidance shown in the web UI and CLI help: format as FAT32,
   create a root `Multitrack` folder, and store each session in its own
   subfolder with the ZIP contents inside it
 - Stereo-to-mono channel splitting: stereo files are decoded and, if the
-  left/right channels differ, split into two mono WAV files named
-  `<name> L.wav` and `<name> R.wav`; if both channels are identical,
-  the file is kept as a single mono-equivalent track instead
+  left/right channels differ, split into two mono tracks and converted to
+  `<name> L.flac` and `<name> R.flac` when FLAC is selected; if both channels
+  are identical, the file is kept as a single mono-equivalent track instead
 - Non-blocking warnings shown in the UI when a file cannot be decoded or
   when a stereo file is split
 - Browser-side ZIP session packaging: a store-only (uncompressed) ZIP
@@ -244,10 +245,11 @@ Implemented:
   files together with `.uirecsession` into a downloadable `session.zip`,
   without any external library or Node.js build step
 - Destination-format selector: a "Destination format" dropdown lets the
-  user pick the output container for raw audio files. `wav` is genuinely
-  implemented (every non-WAV file is decoded and re-encoded as canonical
-  PCM WAV, not just renamed); `flac` and `mp3` are listed as disabled
-  options pending the Rust/WASM adapter and an MP3 encoder, respectively
+  user pick the output container for raw audio files. `flac` is the default
+  and is encoded locally by the shipped Rust/WASM adapter; `wav` is also
+  genuinely implemented (every non-WAV file is decoded and re-encoded as
+  canonical PCM WAV, not just renamed); `mp3` remains disabled pending an
+  encoder
 - Fixed: the exported configuration file is now named exactly
   `.uirecsession` (no basename) in both the direct JSON download and the
   ZIP package, matching the schema in
@@ -266,8 +268,7 @@ explicit feature.
 
 Remaining:
 
-- Rust/WASM audio processing
-- Browser-side FLAC export (the ZIP package currently bundles source audio
+- Real Ui24R validation of browser-generated FLAC sessions
   as-is, typically WAV, instead of FLAC)
 
 ---
