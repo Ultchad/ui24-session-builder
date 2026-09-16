@@ -22,7 +22,7 @@ The project currently has no WebAssembly processing layer or real-device compati
 - [x] Fix session packaging and naming bugs: `.uirecsession` is written with the exact required filename and the ZIP includes only the active session files
 - [x] Harden the decode pipeline against malformed/truncated inputs, especially MP3 playback edge cases
 - [x] Document the required USB layout for the Ui24R: FAT32 key, root `Multitrack` folder, and one folder per session containing the ZIP contents
-- [ ] Implement the missing Rust/WebAssembly bridge so browser-side FLAC conversion works without manual preparation
+- [x] Add the Rust/WASM bridge entry point and browser loader for FLAC conversion, with a clear fallback that keeps the original file when the generated module is missing
 - [ ] Add a real MP3 encoder path or remove MP3 export from the user-facing options until it is implemented
 - [ ] Validate generated sessions on a real Ui24R mixer using the official fixture set and a physical SD/USB export flow
 - [ ] Expand browser/mobile verification for Firefox Android, track removal reliability, and download behavior

@@ -9,6 +9,12 @@ mod metadata;
 mod symphonia_reader;
 mod wav_encoder;
 
+#[cfg(target_arch = "wasm32")]
+mod wasm;
+
+#[cfg(target_arch = "wasm32")]
+pub use wasm::convert_audio_to_flac_bytes;
+
 pub use error::AudioConversionError;
 pub use flac_encoder::{FlacEncoder, FlacEncodingError};
 pub use format::AudioFormat;

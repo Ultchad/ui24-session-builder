@@ -7,9 +7,11 @@ publish = false
 [dependencies]
 symphonia = { version = "=0.5.4", default-features = false, features = ["aiff", "flac", "mp3", "pcm", "wav"] }
 flacenc = { version = "=0.5.1", default-features = false }
+wasm-bindgen = "0.2.100"
 
 [lib]
 path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
 
 [[bench]]
 name = "flac_encoding"

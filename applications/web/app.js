@@ -2,6 +2,7 @@ const input = document.querySelector("#file-input");
 const status = document.querySelector("#status");
 const result = document.querySelector("#result-content");
 const dropzone = document.querySelector("#dropzone");
+let wasmBridge = null;
 const workspace = {
   session: null,
   files: [],
@@ -321,13 +322,27 @@ function extensionOf(name) {
   return match ? match[0].toLowerCase() : "";
 }
 
+async function ensureWasmBridge() {
+  if (wasmBridge) return wasmBridge;
+  try {
+    const module = await import("./wasm/ui24_audio_processing.js");
+    if (module.init) {
+      await module.init();
+    }
+    wasmBridge = module;
+    return module;
+  } catch (error) {
+    console.warn("WASM FLAC bridge unavailable; browser conversion is skipped until the generated module is present.", error);
+    return null;
+  }
+}
+
 // Decodes each file with the Web Audio API to get sample rate and duration.
 // Stereo files with different L/R content are split into two mono WAV files
 // (matching Ui24R's per-channel mono track convention); stereo files whose
-// channels are identical are kept as a single track. Only an explicit WAV
-// selection triggers a decode-and-re-encode pass. FLAC remains the default UI
-// target name, but the browser still preserves the source file until the
-// shared Rust/WebAssembly adapter exists for real conversion.
+// channels are identical are kept as a single track. FLAC conversion is now
+// performed through the shared Rust/WASM bridge when the target format is
+// FLAC and the source is not already FLAC.
 async function processAudioInputs(files) {
   if (!files.length) return [];
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -379,6 +394,20 @@ async function processAudioInputs(files) {
       workspace.warnings.push(`${file.name} was decoded and converted to WAV (${wavFile.name}).`);
       output.push(wavFile);
       continue;
+    }
+
+    if (workspace.outputFormat === "flac" && extension !== ".flac") {
+      const bridge = await ensureWasmBridge();
+      if (bridge && typeof bridge.convertAudioToFlacBytes === "function") {
+        const sourceBytes = new Uint8Array(await file.arrayBuffer());
+        const convertedBytes = bridge.convertAudioToFlacBytes(sourceBytes, extension.replace(/^\./, ""));
+        const flacFile = new File([convertedBytes], `${stripExtension(file.name)}.flac`, { type: "audio/flac" });
+        workspace.trackMetadata.set(flacFile, { sampleRate, durationSamples, ext: ".flac" });
+        workspace.warnings.push(`${file.name} was decoded and converted to FLAC via the Rust/WASM bridge (${flacFile.name}).`);
+        output.push(flacFile);
+        continue;
+      }
+      workspace.warnings.push(`${file.name} kept as-is because the browser-side FLAC bridge is unavailable.`);
     }
 
     workspace.trackMetadata.set(file, { sampleRate, durationSamples, ext: extension });
