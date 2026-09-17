@@ -104,6 +104,28 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 ```
 
+### CLI releases
+
+Push a semantic-version tag on a commit already merged into `main` to create
+a GitHub Release with Linux and Windows CLI binaries:
+
+```bash
+git checkout main
+git pull --ff-only
+git tag v0.0.1
+git push origin v0.0.1
+```
+
+The release workflow publishes these assets without a version in their names:
+
+```text
+ui24-session-builder-linux-x86_64
+ui24-session-builder-windows-x86_64.exe
+```
+
+The workflow builds the binaries from the tagged commit and rejects tags that
+do not point to a commit contained in `main`.
+
 Run the Phase 3 benchmark:
 
 ```bash
