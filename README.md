@@ -168,6 +168,17 @@ cargo run -p ui24-session-builder -- create ./tracks ./output-session --name "Li
 cargo run -p ui24-session-builder -- create ./tracks ./live-session.zip --name "Live Session" --zip
 ```
 
+When no output directory is provided, `create` analyzes the supported audio
+files in the input directory and writes only `.uirecsession` directly there:
+
+```bash
+cargo run -p ui24-session-builder -- create ./tracks --name "Live Session"
+```
+
+This default mode does not convert or copy audio files. Use an output
+directory when a complete session export is required. `--zip` requires an
+explicit output path.
+
 The command analyzes every supported file, rejects mixed sample rates, converts
 the sources to FLAC, assigns channels in sorted filename order, and writes the
 `.uirecsession` file. Use `--zip` to write a root-level FLAC and `.uirecsession`

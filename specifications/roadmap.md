@@ -182,6 +182,9 @@ Implemented for development and testing:
 - `create <input-dir> <output-dir> [--format flac|wav|mp3]` for sorted
   multi-track session creation in the chosen format, printing a compatibility
   warning to stderr when a format other than FLAC is used
+- `create <input-dir> [--format flac|wav|mp3]` writes only `.uirecsession` in
+  the input directory when no output directory is supplied; `--zip` still
+  requires an explicit output path
 - `create <input-dir> <output.zip> --zip [--format flac|wav|mp3]` for ZIP
   session creation in the chosen format
 

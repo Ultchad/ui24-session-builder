@@ -17,6 +17,7 @@
     - ui24-session-builder convert <dossier-audio> <dossier-sortie> --format flac — vérifie que tous les WAV/FLAC/AIFF/MP3 du premier niveau sont convertis, que les fichiers non audio et les sous-dossiers sont ignorés, et que les noms conservent leur stem avec l’extension cible.
     - Vérifie qu’une destination existante qui est un fichier est refusée, tandis qu’une destination absente est créée comme dossier.
     - ui24-session-builder create <dossier> <sortie> --zip avec un dossier contenant plusieurs pistes à sample rates différents — vérifie que l'outil refuse proprement (pas de crash).
+    - ui24-session-builder create <dossier> sans sortie — vérifie que seul `<dossier>/.uirecsession` est écrit, que les fichiers audio ne sont ni copiés ni convertis, et que `--zip` sans sortie est refusé.
     - Ouvre le .uirecsession généré dans un éditeur de texte pour vérifier visuellement les champs (files, names, mapping, sampleRate, lengthSeconds).
 
 2. Dans un navigateur desktop (Web UI)
