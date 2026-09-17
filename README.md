@@ -16,8 +16,10 @@ Implemented today:
 - WAV, FLAC, AIFF, and MP3 metadata extraction
 - WAV, FLAC, AIFF, and MP3 to FLAC or WAV conversion, selectable via `--format` on the CLI (default FLAC, the only format confirmed compatible with real Ui24R hardware; MP3 output is not implemented yet)
 - Panic-safe handling of malformed or truncated audio inputs (decoder panics are caught and reported as errors instead of crashing)
+- Valid FLAC output for real 24-bit WAV sources, verified with long multitrack files
 - Generic and native FLAC and WAV output
 - CLI audio analysis and conversion commands
+- CLI batch conversion of all supported audio files in a directory
 - CLI session creation from an audio directory
 - Official Ui24R fixture schema validation
 - Static Web preview compatible with GitHub Pages
@@ -102,6 +104,28 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 ```
 
+### CLI releases
+
+Push a semantic-version tag on a commit already merged into `main` to create
+a GitHub Release with Linux and Windows CLI binaries:
+
+```bash
+git checkout main
+git pull --ff-only
+git tag v0.0.1
+git push origin v0.0.1
+```
+
+The release workflow publishes these assets without a version in their names:
+
+```text
+ui24-session-builder-linux-x86_64
+ui24-session-builder-windows-x86_64.exe
+```
+
+The workflow builds the binaries from the tagged commit and rejects tags that
+do not point to a commit contained in `main`.
+
 Run the Phase 3 benchmark:
 
 ```bash
@@ -148,12 +172,35 @@ Convert to WAV instead (local use only; not confirmed compatible with the Ui24R 
 cargo run -p ui24-session-builder -- convert ./input.wav ./output.wav --format wav
 ```
 
+Convert every supported audio file in a directory. Non-audio files and
+subdirectories are ignored; the output directory is created when absent and
+must be a directory when it already exists:
+
+```bash
+cargo run -p ui24-session-builder -- convert ./input-audio ./converted-audio --format flac
+```
+
+Each output keeps the source filename stem and receives the selected extension,
+for example `voice.wav` becomes `voice.flac`. `convert` supports WAV, FLAC,
+AIFF, and MP3 input; MP3 remains unavailable as an output format.
+
 Create a session folder from all supported audio files in a directory:
 
 ```bash
 cargo run -p ui24-session-builder -- create ./tracks ./output-session --name "Live Session"
 cargo run -p ui24-session-builder -- create ./tracks ./live-session.zip --name "Live Session" --zip
 ```
+
+When no output directory is provided, `create` analyzes the supported audio
+files in the input directory and writes only `.uirecsession` directly there:
+
+```bash
+cargo run -p ui24-session-builder -- create ./tracks --name "Live Session"
+```
+
+This default mode does not convert or copy audio files. Use an output
+directory when a complete session export is required. `--zip` requires an
+explicit output path.
 
 The command analyzes every supported file, rejects mixed sample rates, converts
 the sources to FLAC, assigns channels in sorted filename order, and writes the

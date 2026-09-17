@@ -98,17 +98,36 @@ impl FlacEncoder {
     ) -> Result<Vec<u8>, FlacEncodingError> {
         validate_parameters(samples, sample_rate, channels, bits_per_sample)?;
 
+        let original_total_samples = samples.len() / usize::from(channels);
+        let mut padded_samples = samples.to_vec();
+        let remainder = original_total_samples % DEFAULT_BLOCK_SIZE;
+        if remainder != 0 {
+            padded_samples.resize(
+                padded_samples.len()
+                    + (DEFAULT_BLOCK_SIZE - remainder) * usize::from(channels),
+                0,
+            );
+        }
         let source = MemSource::from_samples(
-            samples,
+            &padded_samples,
             usize::from(channels),
             usize::from(bits_per_sample),
             usize::try_from(sample_rate).expect("u32 fits in usize on supported targets"),
         );
-        let config = Encoder::default()
+        let mut encoder_config = Encoder::default();
+        if bits_per_sample == 24 {
+            encoder_config.subframe_coding.use_fixed = false;
+            encoder_config.subframe_coding.use_lpc = false;
+        }
+        let config = encoder_config
             .into_verified()
             .map_err(|error| FlacEncodingError::Configuration(format!("{error:?}")))?;
         let stream = encode_with_fixed_block_size(&config, source, DEFAULT_BLOCK_SIZE)
             .map_err(|error| FlacEncodingError::Encoding(error.to_string()))?;
+        let mut stream = stream;
+        stream
+            .stream_info_mut()
+            .set_total_samples(original_total_samples);
         stream
             .verify()
             .map_err(|error| FlacEncodingError::Encoding(format!("{error:?}")))?;
@@ -283,6 +302,28 @@ mod tests {
         assert_eq!(metadata.bit_depth, 16);
         assert_eq!(metadata.channel_count, 1);
         assert_eq!(metadata.duration_samples, samples.len() as u64);
+    }
+
+    #[test]
+    fn reads_real_24_bit_wav_after_flac_conversion() {
+        for name in ["01_Kick", "02_Snare"] {
+            let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(format!(
+                "../../tmp/Multitrack/Complainiacs_Etc_Full.wav/{name}.wav"
+            ));
+            if !fixture.is_file() {
+                return;
+            }
+            let source = std::fs::read(fixture).expect("24-bit WAV fixture should be readable");
+            let encoded = FlacEncoder
+                .convert_to_flac(&source, AudioFormat::Wav)
+                .expect("24-bit WAV conversion should succeed");
+            let metadata = SymphoniaMetadataReader
+                .read_metadata(&encoded, AudioFormat::Flac)
+                .expect("converted 24-bit FLAC should be readable");
+
+            assert_eq!(metadata.bit_depth, 24);
+            assert_eq!(metadata.channel_count, 1);
+        }
     }
 
     #[test]

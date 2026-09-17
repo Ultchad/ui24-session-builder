@@ -175,9 +175,16 @@ Implemented for development and testing:
   conversion (`flac` is the default and only extension confirmed compatible
   with real Ui24R hardware; `wav` is a real, working local export; `mp3` is
   accepted as a value but rejected with a clear "not implemented yet" error)
+- `convert <input-dir> <output-dir> [--format flac|wav|mp3]` for batch
+  conversion of supported audio files directly inside a directory; unrelated
+  files and subdirectories are ignored, and the output directory is created
+  when absent
 - `create <input-dir> <output-dir> [--format flac|wav|mp3]` for sorted
   multi-track session creation in the chosen format, printing a compatibility
   warning to stderr when a format other than FLAC is used
+- `create <input-dir> [--format flac|wav|mp3]` writes only `.uirecsession` in
+  the input directory when no output directory is supplied; `--zip` still
+  requires an explicit output path
 - `create <input-dir> <output.zip> --zip [--format flac|wav|mp3]` for ZIP
   session creation in the chosen format
 

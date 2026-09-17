@@ -5,7 +5,9 @@ use ui24_audio_processing::{
     AudioFormat, AudioMetadataReader, FlacEncoder, SymphoniaMetadataReader, WavEncoder,
 };
 use ui24_core::{ChannelAssignment, Session, SessionMetadata, SessionTrack};
-use ui24_session_generator::{generate_session_folder, generate_session_zip};
+use ui24_session_generator::{
+    generate_configuration, generate_session_folder, generate_session_zip,
+};
 
 /// Destination audio format for `convert` and `create`.
 ///
@@ -56,11 +58,11 @@ enum Command {
         /// WAV, FLAC, AIFF, or MP3 input file.
         input: PathBuf,
     },
-    /// Convert a WAV, FLAC, AIFF, or MP3 file to the destination format.
+    /// Convert one audio file or every supported audio file in a directory.
     Convert {
-        /// Source audio file.
+        /// Source audio file or directory.
         input: PathBuf,
-        /// Destination file.
+        /// Destination file for a single input, or output directory for a directory input.
         output: PathBuf,
         /// Destination audio format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Flac)]
@@ -70,8 +72,8 @@ enum Command {
     Create {
         /// Directory containing WAV, FLAC, AIFF, or MP3 files.
         input_dir: PathBuf,
-        /// Destination session directory.
-        output_dir: PathBuf,
+        /// Destination session directory. When omitted, writes `.uirecsession` in the input directory.
+        output_dir: Option<PathBuf>,
         /// Optional session display name.
         #[arg(long)]
         name: Option<String>,
@@ -108,7 +110,7 @@ fn run(command_line: CommandLine) -> Result<(), String> {
             name,
             zip,
             format,
-        } => create(&input_dir, &output_dir, name, zip, format),
+        } => create(&input_dir, output_dir.as_deref(), name, zip, format),
     }
 }
 
@@ -134,29 +136,112 @@ fn analyze(input: &Path) -> Result<(), String> {
 }
 
 fn convert(input: &Path, output: &Path, format_choice: OutputFormat) -> Result<(), String> {
+    if input.is_dir() {
+        return convert_directory(input, output, format_choice);
+    }
+    if !input.is_file() {
+        return Err(format!(
+            "input is not a file or directory: {}",
+            input.display()
+        ));
+    }
+
     let format = audio_format(input)?;
     let source = std::fs::read(input)
         .map_err(|error| format!("cannot read {}: {error}", input.display()))?;
-    match format_choice {
-        OutputFormat::Flac => FlacEncoder
-            .convert_to_flac_file(&source, format, output)
-            .map_err(|error| error.to_string())?,
-        OutputFormat::Wav => WavEncoder
-            .convert_to_wav_file(&source, format, output)
-            .map_err(|error| error.to_string())?,
-        OutputFormat::Mp3 => return Err(mp3_not_implemented_error()),
-    }
+    convert_source(&source, format, output, format_choice)?;
     println!("wrote {}", output.display());
     Ok(())
 }
 
-fn create(
+fn convert_directory(
     input_dir: &Path,
     output_dir: &Path,
+    format_choice: OutputFormat,
+) -> Result<(), String> {
+    if format_choice == OutputFormat::Mp3 {
+        return Err(mp3_not_implemented_error());
+    }
+    if output_dir.exists() && !output_dir.is_dir() {
+        return Err(format!(
+            "output exists but is not a directory: {}",
+            output_dir.display()
+        ));
+    }
+    std::fs::create_dir_all(output_dir)
+        .map_err(|error| format!("cannot create {}: {error}", output_dir.display()))?;
+
+    let mut inputs = std::fs::read_dir(input_dir)
+        .map_err(|error| format!("cannot read {}: {error}", input_dir.display()))?
+        .map(|entry| entry.map(|entry| entry.path()))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("cannot inspect {}: {error}", input_dir.display()))?;
+    inputs.retain(|path| path.is_file() && audio_format(path).is_ok());
+    inputs.sort_by(|left, right| left.file_name().cmp(&right.file_name()));
+
+    if inputs.is_empty() {
+        return Err(format!(
+            "no supported audio files found in {}",
+            input_dir.display()
+        ));
+    }
+
+    let extension = format_choice.extension();
+    let mut output_names = std::collections::HashSet::with_capacity(inputs.len());
+    for input in inputs {
+        let stem = input
+            .file_stem()
+            .and_then(|value| value.to_str())
+            .ok_or_else(|| format!("invalid audio filename: {}", input.display()))?;
+        let output_name = format!("{stem}.{extension}");
+        if !output_names.insert(output_name.clone()) {
+            return Err(format!("multiple inputs would write {output_name}"));
+        }
+
+        let format = audio_format(&input)?;
+        let source = std::fs::read(&input)
+            .map_err(|error| format!("cannot read {}: {error}", input.display()))?;
+        let output = output_dir.join(output_name);
+        convert_source(&source, format, &output, format_choice)
+            .map_err(|error| format!("cannot convert {}: {error}", input.display()))?;
+        println!("wrote {}", output.display());
+    }
+
+    if format_choice == OutputFormat::Wav {
+        eprintln!(
+            "warning: WAV output has not been verified against real Ui24R hardware; only FLAC is confirmed compatible"
+        );
+    }
+    Ok(())
+}
+
+fn convert_source(
+    source: &[u8],
+    input_format: AudioFormat,
+    output: &Path,
+    format_choice: OutputFormat,
+) -> Result<(), String> {
+    match format_choice {
+        OutputFormat::Flac => FlacEncoder
+            .convert_to_flac_file(source, input_format, output)
+            .map_err(|error| error.to_string()),
+        OutputFormat::Wav => WavEncoder
+            .convert_to_wav_file(source, input_format, output)
+            .map_err(|error| error.to_string()),
+        OutputFormat::Mp3 => Err(mp3_not_implemented_error()),
+    }
+}
+
+fn create(
+    input_dir: &Path,
+    output_dir: Option<&Path>,
     name: Option<String>,
     as_zip: bool,
     format_choice: OutputFormat,
 ) -> Result<(), String> {
+    if as_zip && output_dir.is_none() {
+        return Err("an output path is required when --zip is used".to_owned());
+    }
     if format_choice == OutputFormat::Mp3 {
         return Err(mp3_not_implemented_error());
     }
@@ -220,17 +305,19 @@ fn create(
                 .to_owned();
             let channel = ChannelAssignment::new(track_index as u8)
                 .ok_or_else(|| format!("invalid channel assignment for {}", input.display()))?;
-            let output_file = staging_dir.join(format!("{display_name}.{audio_extension}"));
-            match format_choice {
-                OutputFormat::Flac => FlacEncoder
-                    .convert_to_flac_file(&source, format, &output_file)
-                    .map_err(|error| format!("cannot convert {}: {error}", input.display()))?,
-                OutputFormat::Wav => WavEncoder
-                    .convert_to_wav_file(&source, format, &output_file)
-                    .map_err(|error| format!("cannot convert {}: {error}", input.display()))?,
-                OutputFormat::Mp3 => unreachable!("rejected above"),
+            if output_dir.is_some() {
+                let output_file = staging_dir.join(format!("{display_name}.{audio_extension}"));
+                match format_choice {
+                    OutputFormat::Flac => FlacEncoder
+                        .convert_to_flac_file(&source, format, &output_file)
+                        .map_err(|error| format!("cannot convert {}: {error}", input.display()))?,
+                    OutputFormat::Wav => WavEncoder
+                        .convert_to_wav_file(&source, format, &output_file)
+                        .map_err(|error| format!("cannot convert {}: {error}", input.display()))?,
+                    OutputFormat::Mp3 => unreachable!("rejected above"),
+                }
+                converted_files.push(output_file);
             }
-            converted_files.push(output_file);
             tracks.push(SessionTrack {
                 display_name: display_name.clone(),
                 file_name: format!("{display_name}.{audio_extension}"),
@@ -253,11 +340,17 @@ fn create(
             },
             tracks,
         };
-        if as_zip {
-            generate_session_zip(&session, &converted_files, audio_extension, output_dir)
-                .map_err(|error| error.to_string())
+        if let Some(output_dir) = output_dir {
+            if as_zip {
+                generate_session_zip(&session, &converted_files, audio_extension, output_dir)
+                    .map_err(|error| error.to_string())
+            } else {
+                generate_session_folder(&session, &converted_files, audio_extension, output_dir)
+                    .map_err(|error| error.to_string())
+            }
         } else {
-            generate_session_folder(&session, &converted_files, audio_extension, output_dir)
+            generate_configuration(&session, audio_extension)
+                .and_then(|configuration| configuration.write_json(input_dir.join(".uirecsession")))
                 .map_err(|error| error.to_string())
         }
     })();
@@ -269,10 +362,14 @@ fn create(
             "warning: WAV output has not been verified against real Ui24R hardware; only FLAC is confirmed compatible"
         );
     }
-    if as_zip {
-        println!("created session archive {}", output_dir.display());
+    if let Some(output_dir) = output_dir {
+        if as_zip {
+            println!("created session archive {}", output_dir.display());
+        } else {
+            println!("created session in {}", output_dir.display());
+        }
     } else {
-        println!("created session in {}", output_dir.display());
+        println!("wrote {}", input_dir.join(".uirecsession").display());
     }
     Ok(())
 }
