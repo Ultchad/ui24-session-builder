@@ -56,11 +56,11 @@ enum Command {
         /// WAV, FLAC, AIFF, or MP3 input file.
         input: PathBuf,
     },
-    /// Convert a WAV, FLAC, AIFF, or MP3 file to the destination format.
+    /// Convert one audio file or every supported audio file in a directory.
     Convert {
-        /// Source audio file.
+        /// Source audio file or directory.
         input: PathBuf,
-        /// Destination file.
+        /// Destination file for a single input, or output directory for a directory input.
         output: PathBuf,
         /// Destination audio format.
         #[arg(long, value_enum, default_value_t = OutputFormat::Flac)]
@@ -134,20 +134,100 @@ fn analyze(input: &Path) -> Result<(), String> {
 }
 
 fn convert(input: &Path, output: &Path, format_choice: OutputFormat) -> Result<(), String> {
+    if input.is_dir() {
+        return convert_directory(input, output, format_choice);
+    }
+    if !input.is_file() {
+        return Err(format!(
+            "input is not a file or directory: {}",
+            input.display()
+        ));
+    }
+
     let format = audio_format(input)?;
     let source = std::fs::read(input)
         .map_err(|error| format!("cannot read {}: {error}", input.display()))?;
-    match format_choice {
-        OutputFormat::Flac => FlacEncoder
-            .convert_to_flac_file(&source, format, output)
-            .map_err(|error| error.to_string())?,
-        OutputFormat::Wav => WavEncoder
-            .convert_to_wav_file(&source, format, output)
-            .map_err(|error| error.to_string())?,
-        OutputFormat::Mp3 => return Err(mp3_not_implemented_error()),
-    }
+    convert_source(&source, format, output, format_choice)?;
     println!("wrote {}", output.display());
     Ok(())
+}
+
+fn convert_directory(
+    input_dir: &Path,
+    output_dir: &Path,
+    format_choice: OutputFormat,
+) -> Result<(), String> {
+    if format_choice == OutputFormat::Mp3 {
+        return Err(mp3_not_implemented_error());
+    }
+    if output_dir.exists() && !output_dir.is_dir() {
+        return Err(format!(
+            "output exists but is not a directory: {}",
+            output_dir.display()
+        ));
+    }
+    std::fs::create_dir_all(output_dir)
+        .map_err(|error| format!("cannot create {}: {error}", output_dir.display()))?;
+
+    let mut inputs = std::fs::read_dir(input_dir)
+        .map_err(|error| format!("cannot read {}: {error}", input_dir.display()))?
+        .map(|entry| entry.map(|entry| entry.path()))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("cannot inspect {}: {error}", input_dir.display()))?;
+    inputs.retain(|path| path.is_file() && audio_format(path).is_ok());
+    inputs.sort_by(|left, right| left.file_name().cmp(&right.file_name()));
+
+    if inputs.is_empty() {
+        return Err(format!(
+            "no supported audio files found in {}",
+            input_dir.display()
+        ));
+    }
+
+    let extension = format_choice.extension();
+    let mut output_names = std::collections::HashSet::with_capacity(inputs.len());
+    for input in inputs {
+        let stem = input
+            .file_stem()
+            .and_then(|value| value.to_str())
+            .ok_or_else(|| format!("invalid audio filename: {}", input.display()))?;
+        let output_name = format!("{stem}.{extension}");
+        if !output_names.insert(output_name.clone()) {
+            return Err(format!("multiple inputs would write {output_name}"));
+        }
+
+        let format = audio_format(&input)?;
+        let source = std::fs::read(&input)
+            .map_err(|error| format!("cannot read {}: {error}", input.display()))?;
+        let output = output_dir.join(output_name);
+        convert_source(&source, format, &output, format_choice)
+            .map_err(|error| format!("cannot convert {}: {error}", input.display()))?;
+        println!("wrote {}", output.display());
+    }
+
+    if format_choice == OutputFormat::Wav {
+        eprintln!(
+            "warning: WAV output has not been verified against real Ui24R hardware; only FLAC is confirmed compatible"
+        );
+    }
+    Ok(())
+}
+
+fn convert_source(
+    source: &[u8],
+    input_format: AudioFormat,
+    output: &Path,
+    format_choice: OutputFormat,
+) -> Result<(), String> {
+    match format_choice {
+        OutputFormat::Flac => FlacEncoder
+            .convert_to_flac_file(source, input_format, output)
+            .map_err(|error| error.to_string()),
+        OutputFormat::Wav => WavEncoder
+            .convert_to_wav_file(source, input_format, output)
+            .map_err(|error| error.to_string()),
+        OutputFormat::Mp3 => Err(mp3_not_implemented_error()),
+    }
 }
 
 fn create(

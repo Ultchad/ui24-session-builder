@@ -18,6 +18,7 @@ Implemented today:
 - Panic-safe handling of malformed or truncated audio inputs (decoder panics are caught and reported as errors instead of crashing)
 - Generic and native FLAC and WAV output
 - CLI audio analysis and conversion commands
+- CLI batch conversion of all supported audio files in a directory
 - CLI session creation from an audio directory
 - Official Ui24R fixture schema validation
 - Static Web preview compatible with GitHub Pages
@@ -147,6 +148,18 @@ Convert to WAV instead (local use only; not confirmed compatible with the Ui24R 
 ```bash
 cargo run -p ui24-session-builder -- convert ./input.wav ./output.wav --format wav
 ```
+
+Convert every supported audio file in a directory. Non-audio files and
+subdirectories are ignored; the output directory is created when absent and
+must be a directory when it already exists:
+
+```bash
+cargo run -p ui24-session-builder -- convert ./input-audio ./converted-audio --format flac
+```
+
+Each output keeps the source filename stem and receives the selected extension,
+for example `voice.wav` becomes `voice.flac`. `convert` supports WAV, FLAC,
+AIFF, and MP3 input; MP3 remains unavailable as an output format.
 
 Create a session folder from all supported audio files in a directory:
 
