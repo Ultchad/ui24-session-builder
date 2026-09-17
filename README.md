@@ -16,6 +16,7 @@ Implemented today:
 - WAV, FLAC, AIFF, and MP3 metadata extraction
 - WAV, FLAC, AIFF, and MP3 to FLAC or WAV conversion, selectable via `--format` on the CLI (default FLAC, the only format confirmed compatible with real Ui24R hardware; MP3 output is not implemented yet)
 - Panic-safe handling of malformed or truncated audio inputs (decoder panics are caught and reported as errors instead of crashing)
+- Valid FLAC output for real 24-bit WAV sources, verified with long multitrack files
 - Generic and native FLAC and WAV output
 - CLI audio analysis and conversion commands
 - CLI batch conversion of all supported audio files in a directory

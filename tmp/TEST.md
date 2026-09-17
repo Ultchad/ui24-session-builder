@@ -14,6 +14,7 @@
 - cargo test --workspace + cargo clippy ... -D warnings déjà automatisés, mais en plus, teste à la main :
     - ui24-session-builder analyze <fichier> sur tes vrais fichiers tmp/wav/*.wav et tmp/mp3/*.mp3 — vérifie que le sample rate, la durée et le format affichés correspondent à la réalité (ouvre le fichier dans un lecteur/éditeur audio pour comparer).
     - ui24-session-builder convert <in> <out.flac> — écoute le FLAC généré pour confirmer qu'il n'y a pas de distorsion, de décalage ou de silence inattendu.
+    - Tester une source WAV 24-bit longue (par exemple `Complainiacs_Etc_Full.wav/01_Kick.wav`) puis relancer `analyze` sur le FLAC généré : il doit être lisible et conserver 24 bits, le sample rate et la durée.
     - ui24-session-builder convert <dossier-audio> <dossier-sortie> --format flac — vérifie que tous les WAV/FLAC/AIFF/MP3 du premier niveau sont convertis, que les fichiers non audio et les sous-dossiers sont ignorés, et que les noms conservent leur stem avec l’extension cible.
     - Vérifie qu’une destination existante qui est un fichier est refusée, tandis qu’une destination absente est créée comme dossier.
     - ui24-session-builder create <dossier> <sortie> --zip avec un dossier contenant plusieurs pistes à sample rates différents — vérifie que l'outil refuse proprement (pas de crash).
