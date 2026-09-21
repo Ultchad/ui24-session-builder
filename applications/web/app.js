@@ -126,7 +126,6 @@ function renderAudioFiles() {
       ${metric("Extension", extensionLabel)}
     </div>
     ${formatSelector()}
-    ${stereoControls()}
     ${workspace.warnings.length ? `<div class="warnings">${workspace.warnings.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("")}</div>` : ""}
     ${editableTracks()}
     ${actions()}`;
@@ -147,17 +146,6 @@ function formatSelector() {
   <p class="privacy">Displayed extensions are the selected export projection; conversion runs when the ZIP is created. FLAC, WAV, and MP3 at 320 kbps are encoded locally.</p>`;
 }
 
-function stereoControls() {
-  return workspace.stereoGroups.map((group, index) => `
-    <label class="format-select stereo-select">
-      <span>${escapeHtml(group.sourceName)} stereo handling</span>
-      <select data-stereo-group="${index}">
-        <option value="split" ${group.mode === "split" ? "selected" : ""}>Split L/R</option>
-        <option value="downmix" ${group.mode === "downmix" ? "selected" : ""}>Downmix mono</option>
-      </select>
-    </label>`).join("");
-}
-
 function editableTracks() {
   const tracks = workspace.session ? workspace.session.files : workspace.files.map(projectedFileName);
   const names = workspace.session?.names ?? tracks.map(stripExtension);
@@ -176,8 +164,21 @@ function editableTracks() {
       <input class="track-filename" value="${escapeAttribute(name)}" aria-label="Track ${index + 1} filename" readonly>
       <input class="track-name" data-field="name" value="${escapeAttribute(names[index] ?? name)}" aria-label="Track ${index + 1} name">
       <label class="mapping-input"><span aria-hidden="true">i.</span><input class="track-channel" data-field="mapping" type="number" min="0" max="21" step="1" value="${escapeAttribute(mappingNumber(mappings[index], index))}" aria-label="Track ${index + 1} mapping number"></label>
-      <button class="remove-track" type="button" title="Remove track" data-remove="${index}">Remove</button>
+      <div class="track-actions">
+        ${stereoActionForIndex(index)}
+        <button class="remove-track" type="button" title="Remove track" data-remove="${index}">Remove</button>
+      </div>
     </div>`).join("")}</div>`;
+}
+
+function stereoActionForIndex(index) {
+  if (workspace.session) return "";
+  const file = workspace.files[index];
+  const groupIndex = workspace.stereoGroups.findIndex((group) => group.files.includes(file));
+  if (groupIndex < 0) return "";
+  const group = workspace.stereoGroups[groupIndex];
+  const label = group.mode === "downmix" ? "Split stereo" : "Downmix mono";
+  return `<button class="stereo-action" type="button" title="${label} ${escapeAttribute(group.sourceName)}" data-stereo-action="${groupIndex}">${label}</button>`;
 }
 
 function actions() {
@@ -218,8 +219,9 @@ function bindEditor() {
     renderAudioFiles();
     setStatus("Ready");
   });
-  result.querySelectorAll("[data-stereo-group]").forEach((field) => field.addEventListener("change", () => {
-    applyStereoMode(Number(field.dataset.stereoGroup), field.value);
+  result.querySelectorAll("[data-stereo-action]").forEach((button) => button.addEventListener("click", () => {
+    const group = workspace.stereoGroups[Number(button.dataset.stereoAction)];
+    if (group) applyStereoMode(Number(button.dataset.stereoAction), group.mode === "downmix" ? "split" : "downmix");
   }));
   result.querySelector("#clear-workspace").addEventListener("click", () => {
     resetToEmptyState();
@@ -238,7 +240,9 @@ function applyStereoMode(groupIndex, mode) {
       ext: ".wav"
     });
   }
-  workspace.files = workspace.fileGroups.flatMap((fileGroup) => fileGroup.files);
+  const fileGroup = workspace.fileGroups.find((candidate) => candidate.group === group);
+  if (fileGroup) fileGroup.files = group.files;
+  workspace.files = workspace.fileGroups.flatMap((candidate) => candidate.files);
   renderAudioFiles();
   setStatus("Ready");
 }

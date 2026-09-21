@@ -10,7 +10,7 @@
 | Phase 4 | In progress | Validated configuration, folder generation, CLI audio conversion, ZIP export, official fixture schema validation, and a configurable destination audio extension are implemented. |
 | Phase 5 | In progress | CLI analysis, conversion, and session creation commands are implemented, including FLAC, WAV, and constant-bitrate 320 kbps MP3 destination formats. |
 | Phase 6 | Complete | Rust/WASM bindings and the generated browser bundle convert supported browser audio sources to FLAC locally, with a fallback when the module cannot be loaded. |
-| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, Web Audio metadata, stereo split/downmix controls, Rust/WASM FLAC/WAV/MP3 conversion, in-browser ZIP packaging, and `.uirecsession` download are available. Microphone capture is explicitly deferred. |
+| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, Web Audio metadata, per-track stereo split/downmix actions, Rust/WASM FLAC/WAV/MP3 conversion, in-browser ZIP packaging, and `.uirecsession` download are available. Microphone capture is explicitly deferred. |
 | Phase 8 | In progress | GitHub Pages deployment workflow is configured for `main`. |
 | Phase 9 | Planned | No Flutter application implementation yet. |
 
