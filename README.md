@@ -6,6 +6,9 @@ All processing is local. No account, cloud service, telemetry, analytics, or ext
 
 Online Web Application: [https://ultchad.github.io/ui24-session-builder/](https://ultchad.github.io/ui24-session-builder/)
 
+Before deployment, GitHub Actions validates that the static page, the Rust/WASM
+bundle, FLAC/MP3 exports, and the per-track stereo actions are all present.
+
 ## Current Status
 
 Implemented today:

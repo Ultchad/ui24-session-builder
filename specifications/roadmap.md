@@ -27,6 +27,7 @@ The project has a browser WebAssembly processing layer; real-device compatibilit
 - [x] Add a pure-Rust 320 kbps MP3 encoder path for CLI and browser export
 - [ ] Validate generated sessions on a real Ui24R mixer using the official fixture set and a physical SD/USB export flow
 - [ ] Expand browser/mobile verification for Firefox Android, track removal reliability, and download behavior
+- [x] Add CI validation for the static Web bundle, Wasm exports, and stereo actions
 - [ ] Move from a static browser preview to a broader desktop/mobile distribution target once the core workflow is proven end-to-end
 
 Development tooling now documents matching Rust compiler, `rust-src`,

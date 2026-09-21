@@ -8,6 +8,7 @@
 - [ ] Validation finale sur mixeur Ui24R réel
 - [x] Validation du flux de conversion FLAC côté navigateur via Rust/WASM (bundle généré et chargé, conversion source et split stéréo vérifiés, fallback vérifié quand le module n’est pas présent)
 - [x] Validation de l’encodage MP3 320 kbps côté CLI et du bridge Wasm
+- [x] Validation CI de la présence du bundle Web, des exports Wasm FLAC/MP3 et des actions stéréo
 
 1. Sur ton PC (CLI Rust)
 
