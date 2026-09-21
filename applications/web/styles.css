@@ -58,7 +58,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .format-select { display: flex; align-items: center; gap: 10px; margin-top: 16px; font-size: 14px; }
 .format-select select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 0; background: var(--panel); color: var(--ink); font: inherit; }
 .track-list { margin-top: 20px; border-top: 1px solid var(--line); }
-.track { display: grid; grid-template-columns: 42px minmax(160px, 1.25fr) minmax(160px, 1fr) 100px 74px; gap: 16px; padding: 15px 0; border-bottom: 1px solid var(--line); align-items: center; }
+.track { display: grid; grid-template-columns: 42px minmax(160px, 1.25fr) minmax(160px, 1fr) 100px minmax(74px, 170px); gap: 16px; padding: 15px 0; border-bottom: 1px solid var(--line); align-items: center; }
 .track-header { padding: 12px 10px; border-bottom: 2px solid var(--accent-dark); background: #eee9df; color: var(--accent-dark); font: 700 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
 .track-index, .track-channel { color: var(--accent-dark); font: 700 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .track-name { overflow-wrap: anywhere; }
@@ -71,6 +71,9 @@ button { padding: 10px 13px; border: 1px solid var(--accent-dark); border-radius
 button:hover { background: var(--accent); }
 button.secondary, .remove-track { border-color: var(--line); background: transparent; color: var(--accent-dark); }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.track-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.stereo-action { border-color: var(--teal); background: var(--teal); }
+.stereo-action:hover { background: #25645f; }
 .error { padding: 18px; border-left: 4px solid var(--accent); background: #fff0e9; color: var(--accent-dark); }
 .warnings { margin-bottom: 20px; padding: 14px 18px; border-left: 4px solid var(--teal); background: #eef6f5; color: var(--ink); font-size: 14px; }
 .warnings p { margin: 0 0 6px; }
@@ -85,5 +88,5 @@ button.secondary, .remove-track { border-color: var(--line); background: transpa
   .track-filename { grid-column: 2 / -1; }
   .track-name { grid-column: 2; }
   .mapping-input { grid-column: 3; }
-  .track .remove-track { grid-column: 2 / -1; justify-self: start; }
+  .track-actions { grid-column: 2 / -1; justify-self: start; }
 }

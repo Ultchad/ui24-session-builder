@@ -16,7 +16,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate:
+    name: Validate static Web bundle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check required Web assets
+        run: |
+          test -s applications/web/index.html
+          test -s applications/web/app.js
+          test -s applications/web/styles.css
+          test -s applications/web/wasm/ui24_audio_processing.js
+          test -s applications/web/wasm/ui24_audio_processing_bg.wasm
+          grep -q 'app.js?v=' applications/web/index.html
+          grep -q 'convert_audio_to_flac_bytes' applications/web/app.js
+          grep -q 'convert_audio_to_mp3_bytes' applications/web/app.js
+          grep -q 'Downmix mono' applications/web/app.js
+          grep -q 'Split stereo' applications/web/app.js
   deploy:
+    needs: validate
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -36,3 +56,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+

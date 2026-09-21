@@ -3,11 +3,13 @@
 État actuel de validation:
 
 - [x] Validation automatisée Rust : `cargo test --workspace --quiet` est verte
-- [x] Vérification des règles d’export navigateur : FLAC par défaut via le bridge Rust/WASM, WAV explicitement sélectionné, MP3 désactivé et pas de renommage silencieux
+- [x] Vérification des règles d’export navigateur : FLAC par défaut via le bridge Rust/WASM, WAV et MP3 320 kbps sélectionnables, pas de renommage silencieux
 - [x] Vérification de la génération de session et du packaging ZIP sur les fichiers actifs
 - [ ] Validation finale sur mixeur Ui24R réel
 - [x] Validation du flux de conversion FLAC côté navigateur via Rust/WASM (bundle généré et chargé, conversion source et split stéréo vérifiés, fallback vérifié quand le module n’est pas présent)
-- [ ] Validation MP3 si l’encodeur est ajouté plus tard
+- [x] Validation de l’encodage MP3 320 kbps côté CLI et du bridge Wasm
+- [x] Validation CI de la présence du bundle Web, des exports Wasm FLAC/MP3 et des actions stéréo
+- [x] Vérification manuelle de l’interface Web dans Firefox
 
 1. Sur ton PC (CLI Rust)
 
@@ -23,14 +25,17 @@
 
 2. Dans un navigateur desktop (Web UI)
 
+- Firefox : validation manuelle de l’interface, de l’analyse locale et des actions stéréo effectuée.
 - Vérifier le menu repliable "How to prepare the USB key for the Ui24R" et que les instructions correspondent bien à la structure FAT32/Multitrack/session-folder demandée par le mixer.
 - Glisser-déposer plusieurs fichiers audio (WAV, MP3, mélange) et vérifier que la durée/sample rate/extension affichés sont corrects.
 - Vérifier que l’analyse d’un WAV/AIFF/MP3 affiche rapidement ses métadonnées sans conversion et que le sélecteur est positionné sur `FLAC (WASM)`.
 - Vérifier que `Extension` et les noms du tableau affichent `.flac` comme projection avant conversion, puis afficher `.wav` après sélection de WAV sans relancer l’analyse.
+- Sélectionner `MP3 (320 kbps)`, exporter un ZIP et vérifier que les fichiers audio portent l’extension `.mp3` et sont lisibles par la commande `analyze`.
 - Cliquer sur `Download session .zip` puis vérifier que le badge de statut affiche `Converting 1/N`, `Converting 2/N`, etc., et que le ZIP contient les fichiers `.flac`.
-- Tester un vrai fichier stéréo avec canaux différents (ex. musique stéréo normale) → doit se scinder en `<nom> L.flac` / `<nom> R.flac` (sans tiret) avec le format FLAC sélectionné, avec message d'avertissement visible.
+- Tester un vrai fichier stéréo avec canaux différents (ex. musique stéréo normale) → doit afficher deux pistes L/R sans générer de WAV pendant l’analyse, puis produire `<nom> L.flac` / `<nom> R.flac` à l’export.
 - Vérifier que les deux pistes issues du split restent immédiatement éditables, puis que le ZIP les contient sous les noms `<nom> L.flac` / `<nom> R.flac` après export.
-- Tester un fichier stéréo dupliqué (mêmes canaux L/R) → doit rester un seul fichier, sans split.
+- Tester un fichier stéréo dupliqué (mêmes canaux L/R) → doit afficher une seule piste mono par défaut, sans générer de WAV avant l’export.
+- Sur une piste stéréo, cliquer `Downmix mono` dans la colonne Action : l’affichage doit remplacer L/R par une seule piste mono. Le bouton devient `Split stereo`; cliquer dessus doit restaurer les deux pistes. Vérifier que l’audio n’est réellement converti qu’au ZIP.
 - Modifier les noms de pistes et les mappings dans le tableau, puis télécharger le .uirecsession → vérifier le contenu.
 - Vérifier que le fichier téléchargé s'appelle exactement `.uirecsession` (pas `session.uirecsession`) — c'est le nom exact attendu par le Ui24R.
 - Cliquer sur "Download session .zip" → décompresser l'archive et vérifier qu'elle contient bien les fichiers audio + un fichier `.uirecsession` (nom exact, pas `session.uirecsession`) lisibles.

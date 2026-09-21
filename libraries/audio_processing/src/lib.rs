@@ -6,6 +6,7 @@ mod error;
 mod flac_encoder;
 mod format;
 mod metadata;
+mod mp3_encoder;
 mod symphonia_reader;
 mod wav_encoder;
 
@@ -19,5 +20,6 @@ pub use error::AudioConversionError;
 pub use flac_encoder::{FlacEncoder, FlacEncodingError};
 pub use format::AudioFormat;
 pub use metadata::{AudioMetadata, AudioMetadataReader, AudioProcessingError};
+pub use mp3_encoder::Mp3Encoder;
 pub use symphonia_reader::SymphoniaMetadataReader;
 pub use wav_encoder::WavEncoder;

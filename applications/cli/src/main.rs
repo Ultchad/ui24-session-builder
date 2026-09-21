@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use ui24_audio_processing::{
-    AudioFormat, AudioMetadataReader, FlacEncoder, SymphoniaMetadataReader, WavEncoder,
+    AudioFormat, AudioMetadataReader, FlacEncoder, Mp3Encoder, SymphoniaMetadataReader, WavEncoder,
 };
 use ui24_core::{ChannelAssignment, Session, SessionMetadata, SessionTrack};
 use ui24_session_generator::{
@@ -14,9 +14,8 @@ use ui24_session_generator::{
 /// Only [`OutputFormat::Flac`] has been confirmed compatible with real
 /// Ui24R hardware (see
 /// `documentation/format_specifications/ui24r_session_format.md`).
-/// [`OutputFormat::Wav`] is provided for local, non-hardware-verified
-/// exports. [`OutputFormat::Mp3`] is accepted as a value but not yet
-/// implemented: no MP3 encoder is wired in this workspace.
+/// [`OutputFormat::Wav`] and [`OutputFormat::Mp3`] are provided for local,
+/// non-hardware-verified exports. MP3 output is constant-bitrate 320 kbps.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
 #[value(rename_all = "lower")]
 enum OutputFormat {
@@ -25,7 +24,7 @@ enum OutputFormat {
     /// Canonical PCM WAV output. Local use only; not confirmed compatible
     /// with the Ui24R mixer.
     Wav,
-    /// MP3 output. Not implemented yet.
+    /// MP3 output at constant 320 kbps.
     Mp3,
 }
 
@@ -159,9 +158,6 @@ fn convert_directory(
     output_dir: &Path,
     format_choice: OutputFormat,
 ) -> Result<(), String> {
-    if format_choice == OutputFormat::Mp3 {
-        return Err(mp3_not_implemented_error());
-    }
     if output_dir.exists() && !output_dir.is_dir() {
         return Err(format!(
             "output exists but is not a directory: {}",
@@ -228,7 +224,9 @@ fn convert_source(
         OutputFormat::Wav => WavEncoder
             .convert_to_wav_file(source, input_format, output)
             .map_err(|error| error.to_string()),
-        OutputFormat::Mp3 => Err(mp3_not_implemented_error()),
+        OutputFormat::Mp3 => Mp3Encoder
+            .convert_to_mp3_file(source, input_format, output)
+            .map_err(|error| error.to_string()),
     }
 }
 
@@ -241,9 +239,6 @@ fn create(
 ) -> Result<(), String> {
     if as_zip && output_dir.is_none() {
         return Err("an output path is required when --zip is used".to_owned());
-    }
-    if format_choice == OutputFormat::Mp3 {
-        return Err(mp3_not_implemented_error());
     }
     let audio_extension = format_choice.extension();
     let mut inputs = std::fs::read_dir(input_dir)
@@ -314,7 +309,9 @@ fn create(
                     OutputFormat::Wav => WavEncoder
                         .convert_to_wav_file(&source, format, &output_file)
                         .map_err(|error| format!("cannot convert {}: {error}", input.display()))?,
-                    OutputFormat::Mp3 => unreachable!("rejected above"),
+                    OutputFormat::Mp3 => Mp3Encoder
+                        .convert_to_mp3_file(&source, format, &output_file)
+                        .map_err(|error| format!("cannot convert {}: {error}", input.display()))?,
                 }
                 converted_files.push(output_file);
             }
@@ -372,10 +369,6 @@ fn create(
         println!("wrote {}", input_dir.join(".uirecsession").display());
     }
     Ok(())
-}
-
-fn mp3_not_implemented_error() -> String {
-    "MP3 output is not implemented yet; use --format flac or --format wav".to_owned()
 }
 
 fn audio_format(path: &Path) -> Result<AudioFormat, String> {
