@@ -232,7 +232,7 @@ function applyStereoMode(groupIndex, mode) {
   const group = workspace.stereoGroups[groupIndex];
   if (!group) return;
   group.mode = mode;
-  group.files = mode === "downmix" ? [createDownmixFile(group)] : createSplitFiles(group);
+    group.files = mode === "downmix" ? [createDownmixTrack(group)] : createSplitTracks(group);
   for (const file of group.files) {
     workspace.trackMetadata.set(file, {
       sampleRate: group.sampleRate,
@@ -330,8 +330,12 @@ async function prepareExportFiles() {
 
 async function convertFileForExport(file) {
   const targetExtension = `.${workspace.outputFormat}`;
+  const source = materializeStereoTrack(file);
+  if (source) {
+    if (workspace.outputFormat === "wav") return [source];
+    return convertFileForExport(source);
+  }
   if (extensionOf(file.name) === targetExtension) return [file];
-  const metadata = workspace.trackMetadata.get(file);
   if (workspace.outputFormat === "wav") {
     const decoded = await decodeForExport(file);
     const channels = [];
@@ -359,6 +363,23 @@ async function convertFileForExport(file) {
     return [new File([bytes], `${stripExtension(file.name)}.mp3`, { type: "audio/mpeg" })];
   }
   return [file];
+}
+
+function materializeStereoTrack(file) {
+  const group = file.stereoGroup;
+  if (!group) return null;
+  let channels;
+  if (file.stereoChannel === "left") channels = [group.left];
+  if (file.stereoChannel === "right") channels = [group.right];
+  if (file.stereoChannel === "downmix") {
+    const mono = new Float32Array(group.left.length);
+    for (let index = 0; index < mono.length; index += 1) {
+      mono[index] = (group.left[index] + group.right[index]) / 2;
+    }
+    channels = [mono];
+  }
+  if (!channels) return null;
+  return new File([encodeWavPcm(channels, group.sampleRate)], file.name, { type: "audio/wav" });
 }
 
 async function decodeForExport(file) {
@@ -523,7 +544,7 @@ async function processAudioInputs(files) {
         mode: channelsAreIdentical(left, right) ? "downmix" : "split",
         files: []
       };
-      group.files = group.mode === "downmix" ? [createDownmixFile(group)] : createSplitFiles(group);
+      group.files = group.mode === "downmix" ? [createDownmixTrack(group)] : createSplitTracks(group);
       workspace.stereoGroups.push(group);
       workspace.fileGroups.push({ files: group.files, stereo: true, group });
       for (const stereoFile of group.files) {
@@ -546,19 +567,22 @@ async function processAudioInputs(files) {
   return output;
 }
 
-function createSplitFiles(group) {
+function createSplitTracks(group) {
   return [
-    new File([encodeWavPcm([group.left], group.sampleRate)], `${group.baseName} L.wav`, { type: "audio/wav" }),
-    new File([encodeWavPcm([group.right], group.sampleRate)], `${group.baseName} R.wav`, { type: "audio/wav" })
+    createLogicalTrack(group, "left", `${group.baseName} L.wav`),
+    createLogicalTrack(group, "right", `${group.baseName} R.wav`)
   ];
 }
 
-function createDownmixFile(group) {
-  const mono = new Float32Array(group.left.length);
-  for (let index = 0; index < mono.length; index += 1) {
-    mono[index] = (group.left[index] + group.right[index]) / 2;
-  }
-  return new File([encodeWavPcm([mono], group.sampleRate)], `${group.baseName} mono.wav`, { type: "audio/wav" });
+function createDownmixTrack(group) {
+  return createLogicalTrack(group, "downmix", `${group.baseName} mono.wav`);
+}
+
+function createLogicalTrack(group, channel, name) {
+  const track = new File([], name, { type: "audio/wav" });
+  track.stereoGroup = group;
+  track.stereoChannel = channel;
+  return track;
 }
 
 function channelsAreIdentical(left, right, epsilon = 1e-4) {

@@ -242,10 +242,10 @@ Implemented:
 - USB prep guidance shown in the web UI and CLI help: format as FAT32,
   create a root `Multitrack` folder, and store each session in its own
   subfolder with the ZIP contents inside it
-- Stereo-to-mono channel splitting: stereo files are decoded and, if the
-  left/right channels differ, split into two mono tracks and converted to
-  `<name> L.flac` and `<name> R.flac` when FLAC is selected; if both channels
-  are identical, the file is kept as a single mono-equivalent track instead
+- Stereo handling: stereo files are analyzed without generating output audio;
+  each track row can toggle between separate L/R tracks and one mono track
+  produced by averaging L/R samples. The selected representation is materialized
+  and converted only during export.
 - Non-blocking warnings shown in the UI when a file cannot be decoded or
   when a stereo file is split
 - Browser-side ZIP session packaging: a store-only (uncompressed) ZIP

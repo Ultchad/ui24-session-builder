@@ -29,9 +29,9 @@
 - Vérifier que `Extension` et les noms du tableau affichent `.flac` comme projection avant conversion, puis afficher `.wav` après sélection de WAV sans relancer l’analyse.
 - Sélectionner `MP3 (320 kbps)`, exporter un ZIP et vérifier que les fichiers audio portent l’extension `.mp3` et sont lisibles par la commande `analyze`.
 - Cliquer sur `Download session .zip` puis vérifier que le badge de statut affiche `Converting 1/N`, `Converting 2/N`, etc., et que le ZIP contient les fichiers `.flac`.
-- Tester un vrai fichier stéréo avec canaux différents (ex. musique stéréo normale) → doit se scinder en `<nom> L.flac` / `<nom> R.flac` (sans tiret) avec le format FLAC sélectionné, avec message d'avertissement visible.
+- Tester un vrai fichier stéréo avec canaux différents (ex. musique stéréo normale) → doit afficher deux pistes L/R sans générer de WAV pendant l’analyse, puis produire `<nom> L.flac` / `<nom> R.flac` à l’export.
 - Vérifier que les deux pistes issues du split restent immédiatement éditables, puis que le ZIP les contient sous les noms `<nom> L.flac` / `<nom> R.flac` après export.
-- Tester un fichier stéréo dupliqué (mêmes canaux L/R) → doit être downmixé en une seule piste mono par défaut, sans split.
+- Tester un fichier stéréo dupliqué (mêmes canaux L/R) → doit afficher une seule piste mono par défaut, sans générer de WAV avant l’export.
 - Sur une piste stéréo, cliquer `Downmix mono` dans la colonne Action : l’affichage doit remplacer L/R par une seule piste mono. Le bouton devient `Split stereo`; cliquer dessus doit restaurer les deux pistes. Vérifier que l’audio n’est réellement converti qu’au ZIP.
 - Modifier les noms de pistes et les mappings dans le tableau, puis télécharger le .uirecsession → vérifier le contenu.
 - Vérifier que le fichier téléchargé s'appelle exactement `.uirecsession` (pas `session.uirecsession`) — c'est le nom exact attendu par le Ui24R.

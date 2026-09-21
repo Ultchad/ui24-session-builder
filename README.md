@@ -27,7 +27,7 @@ Implemented today:
 - Visible table headers, read-only filenames, editable track names, and numeric channel mappings
 - Browser-side audio metadata (sample rate, duration, extension) via the Web Audio API
 - Projected destination extensions (`.flac`, `.wav`, or `.mp3`) are shown immediately in the browser table and session JSON; conversion remains deferred until export
-- Browser-side stereo-to-mono channel splitting, with identical-channel detection
+- Browser-side stereo analysis with identical-channel detection and deferred L/R split or mono downmix
 - Per-track stereo action: `Downmix mono` collapses a stereo group to one displayed mono track, and `Split stereo` restores the L/R track pair; actual audio conversion remains deferred until export
 - Browser-side destination-format selector with local Rust/WebAssembly FLAC, WAV, and 320 kbps MP3 conversion
 - Browser `.uirecsession` download
