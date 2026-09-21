@@ -139,7 +139,7 @@ function formatSelector() {
     <span>Destination format</span>
     <select id="output-format">
       <option value="flac" ${selected === "flac" ? "selected" : ""} ${flacEnabled ? "" : "disabled"}>FLAC (WASM)</option>
-      <option value="wav" ${selected === "wav" ? "selected" : ""}>WAV (implemented)</option>
+      <option value="wav" ${selected === "wav" ? "selected" : ""}>WAV</option>
       <option value="mp3" ${selected === "mp3" ? "selected" : ""}>MP3 (320 kbps)</option>
     </select>
   </label>
