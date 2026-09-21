@@ -8,6 +8,7 @@ publish = false
 symphonia = { version = "=0.5.4", default-features = false, features = ["aiff", "flac", "mp3", "pcm", "wav"] }
 flacenc = { version = "=0.5.1", default-features = false }
 wasm-bindgen = "0.2.100"
+rusty_mp3 = "0.8.0"
 
 [lib]
 path = "src/lib.rs"

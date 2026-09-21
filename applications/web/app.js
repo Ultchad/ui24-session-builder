@@ -134,10 +134,10 @@ function formatSelector() {
     <select id="output-format">
       <option value="flac" ${selected === "flac" ? "selected" : ""} ${flacEnabled ? "" : "disabled"}>FLAC (WASM)</option>
       <option value="wav" ${selected === "wav" ? "selected" : ""}>WAV (implemented)</option>
-      <option value="mp3" disabled>MP3 (not implemented)</option>
+      <option value="mp3" ${selected === "mp3" ? "selected" : ""}>MP3 (320 kbps)</option>
     </select>
   </label>
-  <p class="privacy">Displayed extensions are the selected export projection; conversion runs when the ZIP is created. FLAC uses Rust/WebAssembly, WAV is supported, and MP3 is not implemented.</p>`;
+  <p class="privacy">Displayed extensions are the selected export projection; conversion runs when the ZIP is created. FLAC, WAV, and MP3 at 320 kbps are encoded locally.</p>`;
 }
 
 function editableTracks() {
@@ -302,6 +302,15 @@ async function convertFileForExport(file) {
     const bytes = bridge.convert_audio_to_flac_bytes(new Uint8Array(await file.arrayBuffer()), extensionOf(file.name));
     if (!bytes.length) throw new Error(`FLAC conversion failed for ${file.name}.`);
     return [new File([bytes], `${stripExtension(file.name)}.flac`, { type: "audio/flac" })];
+  }
+  if (workspace.outputFormat === "mp3") {
+    const bridge = await ensureWasmBridge();
+    if (!bridge || typeof bridge.convert_audio_to_mp3_bytes !== "function") {
+      throw new Error("The browser MP3 bridge could not be loaded.");
+    }
+    const bytes = bridge.convert_audio_to_mp3_bytes(new Uint8Array(await file.arrayBuffer()), extensionOf(file.name));
+    if (!bytes.length) throw new Error(`MP3 conversion failed for ${file.name}.`);
+    return [new File([bytes], `${stripExtension(file.name)}.mp3`, { type: "audio/mpeg" })];
   }
   return [file];
 }

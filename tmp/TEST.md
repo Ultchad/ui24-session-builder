@@ -3,11 +3,11 @@
 État actuel de validation:
 
 - [x] Validation automatisée Rust : `cargo test --workspace --quiet` est verte
-- [x] Vérification des règles d’export navigateur : FLAC par défaut via le bridge Rust/WASM, WAV explicitement sélectionné, MP3 désactivé et pas de renommage silencieux
+- [x] Vérification des règles d’export navigateur : FLAC par défaut via le bridge Rust/WASM, WAV et MP3 320 kbps sélectionnables, pas de renommage silencieux
 - [x] Vérification de la génération de session et du packaging ZIP sur les fichiers actifs
 - [ ] Validation finale sur mixeur Ui24R réel
 - [x] Validation du flux de conversion FLAC côté navigateur via Rust/WASM (bundle généré et chargé, conversion source et split stéréo vérifiés, fallback vérifié quand le module n’est pas présent)
-- [ ] Validation MP3 si l’encodeur est ajouté plus tard
+- [x] Validation de l’encodage MP3 320 kbps côté CLI et du bridge Wasm
 
 1. Sur ton PC (CLI Rust)
 
@@ -27,6 +27,7 @@
 - Glisser-déposer plusieurs fichiers audio (WAV, MP3, mélange) et vérifier que la durée/sample rate/extension affichés sont corrects.
 - Vérifier que l’analyse d’un WAV/AIFF/MP3 affiche rapidement ses métadonnées sans conversion et que le sélecteur est positionné sur `FLAC (WASM)`.
 - Vérifier que `Extension` et les noms du tableau affichent `.flac` comme projection avant conversion, puis afficher `.wav` après sélection de WAV sans relancer l’analyse.
+- Sélectionner `MP3 (320 kbps)`, exporter un ZIP et vérifier que les fichiers audio portent l’extension `.mp3` et sont lisibles par la commande `analyze`.
 - Cliquer sur `Download session .zip` puis vérifier que le badge de statut affiche `Converting 1/N`, `Converting 2/N`, etc., et que le ZIP contient les fichiers `.flac`.
 - Tester un vrai fichier stéréo avec canaux différents (ex. musique stéréo normale) → doit se scinder en `<nom> L.flac` / `<nom> R.flac` (sans tiret) avec le format FLAC sélectionné, avec message d'avertissement visible.
 - Vérifier que les deux pistes issues du split restent immédiatement éditables, puis que le ZIP les contient sous les noms `<nom> L.flac` / `<nom> R.flac` après export.

@@ -8,9 +8,9 @@
 | Phase 2 | Complete | Rust workspace, domain model, validation engine, and WAV/FLAC/AIFF/MP3 metadata extraction are implemented and tested. |
 | Phase 3 | Complete | In-memory conversion, generic output, benchmark, file output, generated-fixture tests, panic-safe malformed/truncated-input hardening, and a WAV output encoder sharing the same decode stage are implemented. |
 | Phase 4 | In progress | Validated configuration, folder generation, CLI audio conversion, ZIP export, official fixture schema validation, and a configurable destination audio extension are implemented. |
-| Phase 5 | In progress | CLI analysis, conversion, and session creation commands are implemented, including a `--format flac\|wav\|mp3` destination-format option (`mp3` not yet implemented). |
+| Phase 5 | In progress | CLI analysis, conversion, and session creation commands are implemented, including FLAC, WAV, and constant-bitrate 320 kbps MP3 destination formats. |
 | Phase 6 | Complete | Rust/WASM bindings and the generated browser bundle convert supported browser audio sources to FLAC locally, with a fallback when the module cannot be loaded. |
-| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, Web Audio metadata, stereo-to-mono splitting, Rust/WASM FLAC conversion, WAV conversion, in-browser ZIP packaging, and `.uirecsession` download are available. Microphone capture is explicitly deferred. |
+| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, Web Audio metadata, stereo-to-mono splitting, Rust/WASM FLAC/WAV/MP3 conversion, in-browser ZIP packaging, and `.uirecsession` download are available. Microphone capture is explicitly deferred. |
 | Phase 8 | In progress | GitHub Pages deployment workflow is configured for `main`. |
 | Phase 9 | Planned | No Flutter application implementation yet. |
 
@@ -18,12 +18,12 @@ The project has a browser WebAssembly processing layer; real-device compatibilit
 
 ## Immediate next tasks / TODO
 
-- [x] Finalize browser export semantics: FLAC remains the default target, explicit WAV conversion is the only implemented browser conversion, and MP3 is not silently renamed
+- [x] Finalize browser export semantics: FLAC remains the default target, WAV and MP3 320 kbps conversions are explicit, and imports are not silently renamed
 - [x] Fix session packaging and naming bugs: `.uirecsession` is written with the exact required filename and the ZIP includes only the active session files
 - [x] Harden the decode pipeline against malformed/truncated inputs, especially MP3 playback edge cases
 - [x] Document the required USB layout for the Ui24R: FAT32 key, root `Multitrack` folder, and one folder per session containing the ZIP contents
 - [x] Add and ship the Rust/WASM bridge and browser loader for FLAC conversion, including stereo-split tracks and a fallback when the generated module is missing
-- [ ] Add a real MP3 encoder path or remove MP3 export from the user-facing options until it is implemented
+- [x] Add a pure-Rust 320 kbps MP3 encoder path for CLI and browser export
 - [ ] Validate generated sessions on a real Ui24R mixer using the official fixture set and a physical SD/USB export flow
 - [ ] Expand browser/mobile verification for Firefox Android, track removal reliability, and download behavior
 - [ ] Move from a static browser preview to a broader desktop/mobile distribution target once the core workflow is proven end-to-end
@@ -115,7 +115,7 @@ Implemented:
 Remaining:
 
 - External WAV, FLAC, AIFF, and MP3 fixture corpus for compatibility hardening
-- MP3 output encoding (no encoder is wired in this workspace yet)
+- External MP3 fixture corpus and listening validation for the new encoder
 
 ---
 
@@ -173,8 +173,8 @@ Implemented for development and testing:
 - `analyze <input>` for WAV, FLAC, AIFF, and MP3 metadata
 - `convert <input> <output> [--format flac|wav|mp3]` for destination-format
   conversion (`flac` is the default and only extension confirmed compatible
-  with real Ui24R hardware; `wav` is a real, working local export; `mp3` is
-  accepted as a value but rejected with a clear "not implemented yet" error)
+  with real Ui24R hardware; `wav` is a real, working local export; `mp3`
+  produces a constant-bitrate 320 kbps local export)
 - `convert <input-dir> <output-dir> [--format flac|wav|mp3]` for batch
   conversion of supported audio files directly inside a directory; unrelated
   files and subdirectories are ignored, and the output directory is created
@@ -256,8 +256,8 @@ Implemented:
   user pick the output container for raw audio files. `flac` is the default
   and is encoded locally by the shipped Rust/WASM adapter; `wav` is also
   genuinely implemented (every non-WAV file is decoded and re-encoded as
-  canonical PCM WAV, not just renamed); `mp3` remains disabled pending an
-  encoder
+  canonical PCM WAV, not just renamed); `mp3` is encoded locally at 320 kbps
+  through the Rust/WASM adapter
 - Fixed: the exported configuration file is now named exactly
   `.uirecsession` (no basename) in both the direct JSON download and the
   ZIP package, matching the schema in

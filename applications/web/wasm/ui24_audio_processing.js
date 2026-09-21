@@ -19,6 +19,23 @@ export function convert_audio_to_flac_bytes(bytes, extension) {
     wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     return v3;
 }
+
+/**
+ * Converts supported audio bytes into 320 kbps MP3 bytes for the browser bridge.
+ * @param {Uint8Array} bytes
+ * @param {string} extension
+ * @returns {Uint8Array}
+ */
+export function convert_audio_to_mp3_bytes(bytes, extension) {
+    const ptr0 = passArray8ToWasm0(bytes, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(extension, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.convert_audio_to_mp3_bytes(ptr0, len0, ptr1, len1);
+    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v3;
+}
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,

@@ -435,6 +435,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
 
 [[package]]
+name = "rusty_mp3"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2f55a456c3ee21793595c31f1e89419172e556bbb35390f2a39569c09f5a2db"
+
+[[package]]
 name = "seq-macro"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -660,6 +666,7 @@ name = "ui24_audio_processing"
 version = "0.1.0"
 dependencies = [
  "flacenc",
+ "rusty_mp3",
  "symphonia",
  "wasm-bindgen",
 ]
