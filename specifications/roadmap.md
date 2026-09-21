@@ -10,7 +10,7 @@
 | Phase 4 | In progress | Validated configuration, folder generation, CLI audio conversion, ZIP export, official fixture schema validation, and a configurable destination audio extension are implemented. |
 | Phase 5 | In progress | CLI analysis, conversion, and session creation commands are implemented, including FLAC, WAV, and constant-bitrate 320 kbps MP3 destination formats. |
 | Phase 6 | Complete | Rust/WASM bindings and the generated browser bundle convert supported browser audio sources to FLAC locally, with a fallback when the module cannot be loaded. |
-| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, Web Audio metadata, stereo-to-mono splitting, Rust/WASM FLAC/WAV/MP3 conversion, in-browser ZIP packaging, and `.uirecsession` download are available. Microphone capture is explicitly deferred. |
+| Phase 7 | In progress | Static browser editing, drag-and-drop, multi-file selection, Web Audio metadata, stereo split/downmix controls, Rust/WASM FLAC/WAV/MP3 conversion, in-browser ZIP packaging, and `.uirecsession` download are available. Microphone capture is explicitly deferred. |
 | Phase 8 | In progress | GitHub Pages deployment workflow is configured for `main`. |
 | Phase 9 | Planned | No Flutter application implementation yet. |
 
@@ -23,6 +23,7 @@ The project has a browser WebAssembly processing layer; real-device compatibilit
 - [x] Harden the decode pipeline against malformed/truncated inputs, especially MP3 playback edge cases
 - [x] Document the required USB layout for the Ui24R: FAT32 key, root `Multitrack` folder, and one folder per session containing the ZIP contents
 - [x] Add and ship the Rust/WASM bridge and browser loader for FLAC conversion, including stereo-split tracks and a fallback when the generated module is missing
+- [x] Add browser stereo handling options: split true stereo or downmix L/R to one mono track
 - [x] Add a pure-Rust 320 kbps MP3 encoder path for CLI and browser export
 - [ ] Validate generated sessions on a real Ui24R mixer using the official fixture set and a physical SD/USB export flow
 - [ ] Expand browser/mobile verification for Firefox Android, track removal reliability, and download behavior

@@ -8,6 +8,8 @@ const workspace = {
   session: null,
   files: [],
   originalFiles: [],
+  fileGroups: [],
+  stereoGroups: [],
   trackMetadata: new Map(),
   warnings: [],
   outputFormat: "flac"
@@ -25,6 +27,8 @@ function resetToEmptyState() {
   workspace.session = null;
   workspace.files = [];
   workspace.originalFiles = [];
+  workspace.fileGroups = [];
+  workspace.stereoGroups = [];
   workspace.trackMetadata = new Map();
   workspace.warnings = [];
   setResultsState(true);
@@ -72,6 +76,8 @@ async function handleFiles(fileList) {
       workspace.warnings = [];
       const audioFiles = files.filter(isAudioFile);
       workspace.originalFiles = [...audioFiles];
+      workspace.fileGroups = [];
+      workspace.stereoGroups = [];
       setStatus("Analyzing audio", true);
       const processed = await processAudioInputs(audioFiles);
       workspace.files = processed;
@@ -120,6 +126,7 @@ function renderAudioFiles() {
       ${metric("Extension", extensionLabel)}
     </div>
     ${formatSelector()}
+    ${stereoControls()}
     ${workspace.warnings.length ? `<div class="warnings">${workspace.warnings.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("")}</div>` : ""}
     ${editableTracks()}
     ${actions()}`;
@@ -138,6 +145,17 @@ function formatSelector() {
     </select>
   </label>
   <p class="privacy">Displayed extensions are the selected export projection; conversion runs when the ZIP is created. FLAC, WAV, and MP3 at 320 kbps are encoded locally.</p>`;
+}
+
+function stereoControls() {
+  return workspace.stereoGroups.map((group, index) => `
+    <label class="format-select stereo-select">
+      <span>${escapeHtml(group.sourceName)} stereo handling</span>
+      <select data-stereo-group="${index}">
+        <option value="split" ${group.mode === "split" ? "selected" : ""}>Split L/R</option>
+        <option value="downmix" ${group.mode === "downmix" ? "selected" : ""}>Downmix mono</option>
+      </select>
+    </label>`).join("");
 }
 
 function editableTracks() {
@@ -178,6 +196,10 @@ function bindEditor() {
     const isRawAudio = workspace.files.length > 0;
     if (isRawAudio) {
       const [removed] = workspace.files.splice(index, 1);
+      const containingGroup = workspace.fileGroups.find((fileGroup) => fileGroup.files.includes(removed));
+      if (containingGroup) {
+        containingGroup.files = containingGroup.files.filter((file) => file !== removed);
+      }
       workspace.trackMetadata.delete(removed);
     }
     if (workspace.session) {
@@ -196,9 +218,29 @@ function bindEditor() {
     renderAudioFiles();
     setStatus("Ready");
   });
+  result.querySelectorAll("[data-stereo-group]").forEach((field) => field.addEventListener("change", () => {
+    applyStereoMode(Number(field.dataset.stereoGroup), field.value);
+  }));
   result.querySelector("#clear-workspace").addEventListener("click", () => {
     resetToEmptyState();
   });
+}
+
+function applyStereoMode(groupIndex, mode) {
+  const group = workspace.stereoGroups[groupIndex];
+  if (!group) return;
+  group.mode = mode;
+  group.files = mode === "downmix" ? [createDownmixFile(group)] : createSplitFiles(group);
+  for (const file of group.files) {
+    workspace.trackMetadata.set(file, {
+      sampleRate: group.sampleRate,
+      durationSamples: group.durationSamples,
+      ext: ".wav"
+    });
+  }
+  workspace.files = workspace.fileGroups.flatMap((fileGroup) => fileGroup.files);
+  renderAudioFiles();
+  setStatus("Ready");
 }
 
 function updateSessionFromEditor() {
@@ -431,10 +473,8 @@ async function ensureWasmBridge() {
 }
 
 // Decodes each file with the Web Audio API to get sample rate and duration.
-// Stereo files with different L/R content are split into two mono WAV files
-// (matching Ui24R's per-channel mono track convention); stereo files whose
-// channels are identical are kept as a single track. Output conversion is
-// intentionally deferred until the user starts an export.
+// Stereo files can be split into two mono WAV files or downmixed to one mono
+// WAV track. Output conversion is intentionally deferred until export.
 async function processAudioInputs(files) {
   if (!files.length) return [];
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -448,6 +488,8 @@ async function processAudioInputs(files) {
 
   const context = new AudioContextClass();
   const output = [];
+  workspace.fileGroups = [];
+  workspace.stereoGroups = [];
   for (const file of files) {
     const extension = extensionOf(file.name);
     let buffer;
@@ -456,6 +498,7 @@ async function processAudioInputs(files) {
     } catch {
       workspace.trackMetadata.set(file, { sampleRate: null, durationSamples: 0, ext: extension });
       workspace.warnings.push(`Could not decode ${file.name} in the browser; duration is unavailable.`);
+      workspace.fileGroups.push({ files: [file], stereo: false });
       output.push(file);
       continue;
     }
@@ -464,24 +507,54 @@ async function processAudioInputs(files) {
     if (numberOfChannels >= 2) {
       const left = buffer.getChannelData(0);
       const right = buffer.getChannelData(1);
-      if (!channelsAreIdentical(left, right)) {
-        const baseName = stripExtension(file.name);
-        const leftFile = new File([encodeWavPcm([left], sampleRate)], `${baseName} L.wav`, { type: "audio/wav" });
-        const rightFile = new File([encodeWavPcm([right], sampleRate)], `${baseName} R.wav`, { type: "audio/wav" });
-        const splitFiles = [leftFile, rightFile];
-        workspace.trackMetadata.set(leftFile, { sampleRate, durationSamples, ext: ".wav" });
-        workspace.trackMetadata.set(rightFile, { sampleRate, durationSamples, ext: ".wav" });
-        workspace.warnings.push(`${file.name} has different left/right channels; split into ${projectedFileName(leftFile)} and ${projectedFileName(rightFile)}.`);
-        output.push(...splitFiles);
-        continue;
+      const group = {
+        sourceName: file.name,
+        baseName: stripExtension(file.name),
+        sourceFile: file,
+        left,
+        right,
+        sampleRate,
+        durationSamples,
+        identical: channelsAreIdentical(left, right),
+        mode: channelsAreIdentical(left, right) ? "downmix" : "split",
+        files: []
+      };
+      group.files = group.mode === "downmix" ? [createDownmixFile(group)] : createSplitFiles(group);
+      workspace.stereoGroups.push(group);
+      workspace.fileGroups.push({ files: group.files, stereo: true, group });
+      for (const stereoFile of group.files) {
+        workspace.trackMetadata.set(stereoFile, { sampleRate, durationSamples, ext: ".wav" });
       }
+      if (!group.identical) {
+        workspace.warnings.push(`${file.name} has different left/right channels; choose split or downmix in stereo handling.`);
+      } else {
+        workspace.warnings.push(`${file.name} has identical left/right channels; downmix mono is selected by default.`);
+      }
+      output.push(...group.files);
+      continue;
     }
 
     workspace.trackMetadata.set(file, { sampleRate, durationSamples, ext: extension });
+    workspace.fileGroups.push({ files: [file], stereo: false });
     output.push(file);
   }
   await context.close();
   return output;
+}
+
+function createSplitFiles(group) {
+  return [
+    new File([encodeWavPcm([group.left], group.sampleRate)], `${group.baseName} L.wav`, { type: "audio/wav" }),
+    new File([encodeWavPcm([group.right], group.sampleRate)], `${group.baseName} R.wav`, { type: "audio/wav" })
+  ];
+}
+
+function createDownmixFile(group) {
+  const mono = new Float32Array(group.left.length);
+  for (let index = 0; index < mono.length; index += 1) {
+    mono[index] = (group.left[index] + group.right[index]) / 2;
+  }
+  return new File([encodeWavPcm([mono], group.sampleRate)], `${group.baseName} mono.wav`, { type: "audio/wav" });
 }
 
 function channelsAreIdentical(left, right, epsilon = 1e-4) {

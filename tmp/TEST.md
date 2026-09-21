@@ -31,7 +31,8 @@
 - Cliquer sur `Download session .zip` puis vérifier que le badge de statut affiche `Converting 1/N`, `Converting 2/N`, etc., et que le ZIP contient les fichiers `.flac`.
 - Tester un vrai fichier stéréo avec canaux différents (ex. musique stéréo normale) → doit se scinder en `<nom> L.flac` / `<nom> R.flac` (sans tiret) avec le format FLAC sélectionné, avec message d'avertissement visible.
 - Vérifier que les deux pistes issues du split restent immédiatement éditables, puis que le ZIP les contient sous les noms `<nom> L.flac` / `<nom> R.flac` après export.
-- Tester un fichier stéréo dupliqué (mêmes canaux L/R) → doit rester un seul fichier, sans split.
+- Tester un fichier stéréo dupliqué (mêmes canaux L/R) → doit être downmixé en une seule piste mono par défaut, sans split.
+- Vérifier que le contrôle `Stereo handling` propose `Split L/R` et `Downmix mono`; le downmix doit produire une seule piste mono issue de la moyenne gauche/droite et l’export doit utiliser le format choisi.
 - Modifier les noms de pistes et les mappings dans le tableau, puis télécharger le .uirecsession → vérifier le contenu.
 - Vérifier que le fichier téléchargé s'appelle exactement `.uirecsession` (pas `session.uirecsession`) — c'est le nom exact attendu par le Ui24R.
 - Cliquer sur "Download session .zip" → décompresser l'archive et vérifier qu'elle contient bien les fichiers audio + un fichier `.uirecsession` (nom exact, pas `session.uirecsession`) lisibles.
