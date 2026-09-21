@@ -9,6 +9,7 @@
 - [x] Validation du flux de conversion FLAC côté navigateur via Rust/WASM (bundle généré et chargé, conversion source et split stéréo vérifiés, fallback vérifié quand le module n’est pas présent)
 - [x] Validation de l’encodage MP3 320 kbps côté CLI et du bridge Wasm
 - [x] Validation CI de la présence du bundle Web, des exports Wasm FLAC/MP3 et des actions stéréo
+- [x] Vérification manuelle de l’interface Web dans Firefox
 
 1. Sur ton PC (CLI Rust)
 
@@ -24,6 +25,7 @@
 
 2. Dans un navigateur desktop (Web UI)
 
+- Firefox : validation manuelle de l’interface, de l’analyse locale et des actions stéréo effectuée.
 - Vérifier le menu repliable "How to prepare the USB key for the Ui24R" et que les instructions correspondent bien à la structure FAT32/Multitrack/session-folder demandée par le mixer.
 - Glisser-déposer plusieurs fichiers audio (WAV, MP3, mélange) et vérifier que la durée/sample rate/extension affichés sont corrects.
 - Vérifier que l’analyse d’un WAV/AIFF/MP3 affiche rapidement ses métadonnées sans conversion et que le sélecteur est positionné sur `FLAC (WASM)`.

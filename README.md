@@ -9,6 +9,9 @@ Online Web Application: [https://ultchad.github.io/ui24-session-builder/](https:
 Before deployment, GitHub Actions validates that the static page, the Rust/WASM
 bundle, FLAC/MP3 exports, and the per-track stereo actions are all present.
 
+The static Web UI has also been manually verified in Firefox. Android-specific
+file-picker and download behavior remains under validation.
+
 ## Current Status
 
 Implemented today:
