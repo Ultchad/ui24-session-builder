@@ -5,7 +5,8 @@
 - [x] Validation automatisée Rust : `cargo test --workspace --quiet` est verte
 - [x] Vérification des règles d’export navigateur : FLAC par défaut via le bridge Rust/WASM, WAV et MP3 320 kbps sélectionnables, pas de renommage silencieux
 - [x] Vérification de la génération de session et du packaging ZIP sur les fichiers actifs
-- [ ] Validation finale sur mixeur Ui24R réel
+- [x] Validation finale sur mixeur Ui24R réel : FLAC et WAV fonctionnent (multitrack complet) ; MP3 échoue avec une erreur de session même après correction manuelle de l’extension
+- [ ] Validation contre le jeu de fixtures officiel pour une compatibilité byte-à-byte complète
 - [x] Validation du flux de conversion FLAC côté navigateur via Rust/WASM (bundle généré et chargé, conversion source et split stéréo vérifiés, fallback vérifié quand le module n’est pas présent)
 - [x] Validation de l’encodage MP3 320 kbps côté CLI et du bridge Wasm
 - [x] Validation CI de la présence du bundle Web, des exports Wasm FLAC/MP3 et des actions stéréo
@@ -20,7 +21,7 @@
     - ui24-session-builder convert <dossier-audio> <dossier-sortie> --format flac — vérifie que tous les WAV/FLAC/AIFF/MP3 du premier niveau sont convertis, que les fichiers non audio et les sous-dossiers sont ignorés, et que les noms conservent leur stem avec l’extension cible.
     - Vérifie qu’une destination existante qui est un fichier est refusée, tandis qu’une destination absente est créée comme dossier.
     - ui24-session-builder create <dossier> <sortie> --zip avec un dossier contenant plusieurs pistes à sample rates différents — vérifie que l'outil refuse proprement (pas de crash).
-    - ui24-session-builder create <dossier> sans sortie — vérifie que seul `<dossier>/.uirecsession` est écrit, que les fichiers audio ne sont ni copiés ni convertis, et que `--zip` sans sortie est refusé.
+    - ui24-session-builder create <dossier> sans sortie — vérifie que seul `<dossier>/.uirecsession` est écrit, que les fichiers audio ne sont ni copiés ni convertis, que `--zip` sans sortie est refusé, et que le champ `ext` correspond à l’extension réelle des fichiers du dossier (pas à `--format`, ignoré dans ce mode avec une note affichée). Vérifie qu’un dossier mélangeant plusieurs extensions audio est refusé proprement.
     - Ouvre le .uirecsession généré dans un éditeur de texte pour vérifier visuellement les champs (files, names, mapping, sampleRate, lengthSeconds).
 
 2. Dans un navigateur desktop (Web UI)
@@ -63,3 +64,4 @@
     - que la lecture audio est correcte (pas de désynchronisation, pas de bruit, bon ordre stéréo si un split L/R a été fait) ;
     - que les noms de pistes s'affichent correctement sur l'écran du mixeur (attention aux caractères accentués/Unicode).
 - Comparer avec une session générée par l'outil officiel Windows (si disponible) pour repérer d'éventuelles différences byte-à-byte ou de comportement.
+- Résultat observé (2026-09) : FLAC et WAV fonctionnent sur un vrai Ui24R multitrack. MP3 provoque une erreur de session sur le mixeur, même après correction manuelle du champ `ext` dans `.uirecsession` — à éviter tant que la cause exacte (probablement le padding/délai introduit par l'encodeur MP3) n'est pas résolue.
