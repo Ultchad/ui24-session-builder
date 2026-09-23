@@ -8,9 +8,11 @@ use ui24_core::{validate_session, Session, ValidationIssue};
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipWriter};
 
-/// The only audio extension confirmed compatible with real Ui24R hardware,
-/// observed in the official `.uirecsession` example. Other extensions are
-/// accepted by this crate for local, non-hardware-verified exports only.
+/// The audio extension observed in the official `.uirecsession` example.
+/// Real-hardware testing has since also confirmed `"wav"` sessions load and
+/// play back correctly, while MP3 sessions are rejected by the mixer with a
+/// session error. Other extensions are accepted by this crate for local,
+/// non-hardware-verified exports only.
 pub const VERIFIED_UI24R_AUDIO_EXTENSION: &str = "flac";
 
 /// A verified Ui24R session configuration ready for JSON serialization.
@@ -71,8 +73,9 @@ impl Ui24rSessionConfiguration {
 /// `"flac"`), in the same order as `session.tracks`. The destination
 /// directory is created when necessary and may already exist.
 ///
-/// Only `"flac"` ([`VERIFIED_UI24R_AUDIO_EXTENSION`]) has been confirmed
-/// compatible with real Ui24R hardware.
+/// Only `"flac"` and `"wav"` have been confirmed compatible with real
+/// Ui24R hardware; MP3 sessions are rejected by the mixer with a session
+/// error (see [`VERIFIED_UI24R_AUDIO_EXTENSION`]).
 pub fn generate_session_folder(
     session: &Session,
     source_files: &[PathBuf],
@@ -104,9 +107,10 @@ pub fn generate_session_folder(
 /// at the root, matching the generated folder layout.
 ///
 /// `source_files` must already be encoded to `audio_extension` (without a
-/// leading dot, for example `"flac"`). Only `"flac"`
-/// ([`VERIFIED_UI24R_AUDIO_EXTENSION`]) has been confirmed compatible with
-/// real Ui24R hardware.
+/// leading dot, for example `"flac"`). Only `"flac"` and `"wav"` have been
+/// confirmed compatible with real Ui24R hardware (see
+/// [`VERIFIED_UI24R_AUDIO_EXTENSION`]); MP3 sessions are rejected by the
+/// mixer with a session error.
 pub fn generate_session_zip(
     session: &Session,
     source_files: &[PathBuf],
@@ -179,9 +183,10 @@ fn validate_source_files(
 ///
 /// `audio_extension` is the destination audio file extension without a
 /// leading dot (for example `"flac"` or `"wav"`) that every track will be
-/// encoded to. Only `"flac"` ([`VERIFIED_UI24R_AUDIO_EXTENSION`]) has been
-/// confirmed compatible with real Ui24R hardware; other extensions are
-/// accepted for local, non-hardware-verified exports.
+/// encoded to. `"flac"` and `"wav"` have both been confirmed compatible with
+/// real Ui24R hardware (see [`VERIFIED_UI24R_AUDIO_EXTENSION`]); MP3
+/// sessions are rejected by the mixer with a session error, and other
+/// extensions are accepted for local, non-hardware-verified exports.
 pub fn generate_configuration(
     session: &Session,
     audio_extension: &str,

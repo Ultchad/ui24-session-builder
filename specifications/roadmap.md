@@ -14,7 +14,7 @@
 | Phase 8 | In progress | GitHub Pages deployment workflow is configured for `main`. |
 | Phase 9 | Planned | No Flutter application implementation yet. |
 
-The project has a browser WebAssembly processing layer; real-device compatibility validation remains outstanding.
+The project has a browser WebAssembly processing layer. Real-device testing has confirmed that FLAC and WAV multitrack sessions load and play back correctly on a Ui24R mixer, while MP3 sessions are rejected with a session error even when the `.uirecsession` `ext` field matches the file extension.
 
 ## Immediate next tasks / TODO
 
@@ -25,10 +25,12 @@ The project has a browser WebAssembly processing layer; real-device compatibilit
 - [x] Add and ship the Rust/WASM bridge and browser loader for FLAC conversion, including stereo-split tracks and a fallback when the generated module is missing
 - [x] Add browser stereo handling options: split true stereo or downmix L/R to one mono track
 - [x] Add a pure-Rust 320 kbps MP3 encoder path for CLI and browser export
-- [ ] Validate generated sessions on a real Ui24R mixer using the official fixture set and a physical SD/USB export flow
+- [x] Validate FLAC and WAV multitrack sessions on a real Ui24R mixer over a physical SD/USB export flow; MP3 sessions confirmed to fail with a session error
+- [ ] Validate generated sessions against the official fixture set for byte/structure compatibility
 - [x] Verify the static Web UI in Firefox
 - [ ] Expand browser/mobile verification for Firefox Android, track removal reliability, and download behavior
 - [x] Add CI validation for the static Web bundle, Wasm exports, and stereo actions
+- [x] Add Rust CI validation for formatting, tests, Clippy, documentation, and a fresh Wasm bridge build
 - [ ] Move from a static browser preview to a broader desktop/mobile distribution target once the core workflow is proven end-to-end
 
 Development tooling now documents matching Rust compiler, `rust-src`,
@@ -112,8 +114,8 @@ Implemented:
   encoder, so each destination format only implements its own encoding step
 - `WavEncoder`: canonical PCM WAV output (8/16/24/32-bit), sharing the same
   decode stage, panic-safety, and malformed-input tests as `FlacEncoder`.
-  WAV is not confirmed compatible with real Ui24R hardware; it is offered
-  for local, non-hardware-verified exports only
+  WAV has been confirmed compatible with real Ui24R hardware, though it is
+  not the vendor-documented format
 
 Remaining:
 
@@ -151,7 +153,8 @@ Implemented:
   `generate_session_folder`, and `generate_session_zip` accept the audio
   extension used for a session (`"flac"` or `"wav"`) instead of assuming
   FLAC, while `VERIFIED_UI24R_AUDIO_EXTENSION` (`"flac"`) documents the
-  only extension confirmed compatible with real hardware
+  vendor-observed schema extension; real hardware testing has since also
+  confirmed WAV sessions, while MP3 sessions fail with a session error
 
 Remaining:
 
@@ -175,9 +178,10 @@ Implemented for development and testing:
 
 - `analyze <input>` for WAV, FLAC, AIFF, and MP3 metadata
 - `convert <input> <output> [--format flac|wav|mp3]` for destination-format
-  conversion (`flac` is the default and only extension confirmed compatible
-  with real Ui24R hardware; `wav` is a real, working local export; `mp3`
-  produces a constant-bitrate 320 kbps local export)
+  conversion (`flac` is the default and, together with `wav`, is confirmed
+  compatible with real Ui24R hardware; `mp3` produces a constant-bitrate
+  320 kbps export confirmed to fail on real Ui24R hardware with a session
+  error, so it is local use only)
 - `convert <input-dir> <output-dir> [--format flac|wav|mp3]` for batch
   conversion of supported audio files directly inside a directory; unrelated
   files and subdirectories are ignored, and the output directory is created
@@ -187,7 +191,11 @@ Implemented for development and testing:
   warning to stderr when a format other than FLAC is used
 - `create <input-dir> [--format flac|wav|mp3]` writes only `.uirecsession` in
   the input directory when no output directory is supplied; `--zip` still
-  requires an explicit output path
+  requires an explicit output path. In this mode no conversion happens, so
+  `--format` is ignored (a note is printed) and the `ext`/`files` fields are
+  derived from the real, shared extension of the input files; a directory
+  mixing several audio extensions is rejected instead of producing a
+  mismatched configuration
 - `create <input-dir> <output.zip> --zip [--format flac|wav|mp3]` for ZIP
   session creation in the chosen format
 
@@ -196,9 +204,9 @@ produces root-level FLAC files plus `.uirecsession`.
 
 The CLI session workflow rejects mixed sample rates and exports prepared
 audio tracks plus `.uirecsession`, either as a folder or ZIP archive, in
-whichever destination format was requested. Real-device compatibility tests
-remain outstanding, and only FLAC has been confirmed against the observed
-Ui24R schema.
+whichever destination format was requested. Real-device testing has
+confirmed that FLAC and WAV sessions load and play back on a Ui24R mixer;
+MP3 sessions have been confirmed to fail with a session error.
 
 ---
 

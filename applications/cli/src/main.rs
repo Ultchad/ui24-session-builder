@@ -11,20 +11,24 @@ use ui24_session_generator::{
 
 /// Destination audio format for `convert` and `create`.
 ///
-/// Only [`OutputFormat::Flac`] has been confirmed compatible with real
-/// Ui24R hardware (see
-/// `documentation/format_specifications/ui24r_session_format.md`).
-/// [`OutputFormat::Wav`] and [`OutputFormat::Mp3`] are provided for local,
-/// non-hardware-verified exports. MP3 output is constant-bitrate 320 kbps.
+/// [`OutputFormat::Flac`] and [`OutputFormat::Wav`] have both been confirmed
+/// to load and play back multitrack sessions on a real Ui24R mixer (see
+/// `documentation/format_specifications/ui24r_session_format.md`). Real
+/// hardware testing found that [`OutputFormat::Mp3`] sessions are rejected
+/// by the mixer with a session error, even with a `.uirecsession` `ext`
+/// field that matches the actual file extension; MP3 is provided for local,
+/// non-hardware-compatible exports only. MP3 output is constant-bitrate
+/// 320 kbps.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
 #[value(rename_all = "lower")]
 enum OutputFormat {
     /// FLAC output (default). Confirmed compatible with real Ui24R hardware.
     Flac,
-    /// Canonical PCM WAV output. Local use only; not confirmed compatible
-    /// with the Ui24R mixer.
+    /// Canonical PCM WAV output. Confirmed compatible with real Ui24R
+    /// hardware, but not the vendor-documented format.
     Wav,
-    /// MP3 output at constant 320 kbps.
+    /// MP3 output at constant 320 kbps. Confirmed to fail (session error) on
+    /// real Ui24R hardware; local use only.
     Mp3,
 }
 
@@ -203,10 +207,14 @@ fn convert_directory(
         println!("wrote {}", output.display());
     }
 
-    if format_choice == OutputFormat::Wav {
-        eprintln!(
-            "warning: WAV output has not been verified against real Ui24R hardware; only FLAC is confirmed compatible"
-        );
+    match format_choice {
+        OutputFormat::Wav => eprintln!(
+            "warning: WAV output has been verified on real Ui24R hardware but is not the vendor-documented format; prefer FLAC when possible"
+        ),
+        OutputFormat::Mp3 => eprintln!(
+            "warning: MP3 sessions have been confirmed to fail on real Ui24R hardware (session error); use --format flac or --format wav instead"
+        ),
+        OutputFormat::Flac => {}
     }
     Ok(())
 }
@@ -240,7 +248,6 @@ fn create(
     if as_zip && output_dir.is_none() {
         return Err("an output path is required when --zip is used".to_owned());
     }
-    let audio_extension = format_choice.extension();
     let mut inputs = std::fs::read_dir(input_dir)
         .map_err(|error| format!("cannot read {}: {error}", input_dir.display()))?
         .map(|entry| entry.map(|entry| entry.path()))
@@ -258,6 +265,19 @@ fn create(
     if inputs.len() > 22 {
         return Err("a Ui24R session cannot contain more than 22 tracks".to_owned());
     }
+    // Without an output path, no conversion or copy ever happens: the
+    // `.uirecsession` must therefore describe the extension the files
+    // already have on disk, never the (possibly default) `--format` value.
+    let audio_extension = if output_dir.is_some() {
+        format_choice.extension().to_owned()
+    } else {
+        if format_choice != OutputFormat::Flac {
+            eprintln!(
+                "note: --format is ignored without an output path; the existing file extension is used instead"
+            );
+        }
+        shared_audio_extension(&inputs)?
+    };
 
     let reader = SymphoniaMetadataReader;
     let mut tracks = Vec::with_capacity(inputs.len());
@@ -339,14 +359,14 @@ fn create(
         };
         if let Some(output_dir) = output_dir {
             if as_zip {
-                generate_session_zip(&session, &converted_files, audio_extension, output_dir)
+                generate_session_zip(&session, &converted_files, &audio_extension, output_dir)
                     .map_err(|error| error.to_string())
             } else {
-                generate_session_folder(&session, &converted_files, audio_extension, output_dir)
+                generate_session_folder(&session, &converted_files, &audio_extension, output_dir)
                     .map_err(|error| error.to_string())
             }
         } else {
-            generate_configuration(&session, audio_extension)
+            generate_configuration(&session, &audio_extension)
                 .and_then(|configuration| configuration.write_json(input_dir.join(".uirecsession")))
                 .map_err(|error| error.to_string())
         }
@@ -354,10 +374,16 @@ fn create(
 
     let _ = std::fs::remove_dir_all(&staging_dir);
     result?;
-    if format_choice == OutputFormat::Wav {
-        eprintln!(
-            "warning: WAV output has not been verified against real Ui24R hardware; only FLAC is confirmed compatible"
-        );
+    if output_dir.is_some() {
+        match format_choice {
+            OutputFormat::Wav => eprintln!(
+                "warning: WAV output has been verified on real Ui24R hardware but is not the vendor-documented format; prefer FLAC when possible"
+            ),
+            OutputFormat::Mp3 => eprintln!(
+                "warning: MP3 sessions have been confirmed to fail on real Ui24R hardware (session error); use --format flac or --format wav instead"
+            ),
+            OutputFormat::Flac => {}
+        }
     }
     if let Some(output_dir) = output_dir {
         if as_zip {
@@ -378,4 +404,102 @@ fn audio_format(path: &Path) -> Result<AudioFormat, String> {
         .ok_or_else(|| format!("{} has no supported audio extension", path.display()))?;
     AudioFormat::from_extension(extension)
         .ok_or_else(|| format!("unsupported audio extension: .{extension}"))
+}
+
+/// Returns the lowercase extension shared by every input, used when writing
+/// a `.uirecsession` without converting or copying any file.
+fn shared_audio_extension(inputs: &[PathBuf]) -> Result<String, String> {
+    let mut extensions = inputs
+        .iter()
+        .filter_map(|path| path.extension().and_then(|value| value.to_str()))
+        .map(str::to_ascii_lowercase);
+    let first = extensions
+        .next()
+        .ok_or_else(|| "no supported audio files found".to_owned())?;
+    for other in extensions {
+        if other != first {
+            return Err(format!(
+                "cannot write .uirecsession without an output path: input files use mixed extensions (.{first} and .{other}); convert them to a single format first with `convert` or pass an output path to `create`"
+            ));
+        }
+    }
+    Ok(first)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn pcm_wav(samples: &[i16], sample_rate: u32) -> Vec<u8> {
+        let data_size = samples.len() * 2;
+        let mut wav = Vec::with_capacity(44 + data_size);
+        wav.extend_from_slice(b"RIFF");
+        wav.extend_from_slice(&(36_u32 + data_size as u32).to_le_bytes());
+        wav.extend_from_slice(b"WAVEfmt ");
+        wav.extend_from_slice(&16_u32.to_le_bytes());
+        wav.extend_from_slice(&1_u16.to_le_bytes());
+        wav.extend_from_slice(&1_u16.to_le_bytes());
+        wav.extend_from_slice(&sample_rate.to_le_bytes());
+        wav.extend_from_slice(&(sample_rate * 2).to_le_bytes());
+        wav.extend_from_slice(&2_u16.to_le_bytes());
+        wav.extend_from_slice(&16_u16.to_le_bytes());
+        wav.extend_from_slice(b"data");
+        wav.extend_from_slice(&(data_size as u32).to_le_bytes());
+        for sample in samples {
+            wav.extend_from_slice(&sample.to_le_bytes());
+        }
+        wav
+    }
+
+    fn unique_temp_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "ui24-cli-test-{name}-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("temp dir should be creatable");
+        dir
+    }
+
+    /// Regression test: `create` without an output path must not convert or
+    /// copy any file, so the written `.uirecsession` must describe the real
+    /// on-disk extension (here `.wav`) instead of the `--format` default
+    /// (`flac`), which previously produced a mismatched `.uirecsession` that
+    /// a real Ui24R mixer rejects.
+    #[test]
+    fn create_without_output_uses_real_file_extension_not_format_default() {
+        let dir = unique_temp_dir("wav-ext");
+        let samples: Vec<i16> = (0..4096).map(|index| (index % 512) as i16 - 256).collect();
+        std::fs::write(dir.join("track.wav"), pcm_wav(&samples, 48_000))
+            .expect("fixture should be writable");
+
+        create(&dir, None, None, false, OutputFormat::Flac).expect("create should succeed");
+
+        let config = std::fs::read_to_string(dir.join(".uirecsession"))
+            .expect(".uirecsession should have been written");
+        assert!(
+            config.contains("\"ext\": \".wav\""),
+            "expected ext to be .wav, got: {config}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn shared_audio_extension_rejects_mixed_inputs() {
+        let inputs = vec![PathBuf::from("a.wav"), PathBuf::from("b.mp3")];
+
+        let result = shared_audio_extension(&inputs);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn shared_audio_extension_accepts_uniform_inputs_case_insensitively() {
+        let inputs = vec![PathBuf::from("a.wav"), PathBuf::from("B.WAV")];
+
+        let result = shared_audio_extension(&inputs).expect("uniform extension should be accepted");
+
+        assert_eq!(result, "wav");
+    }
 }

@@ -1,0 +1,52 @@
+name: Validate Workspace
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo registry and build outputs
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run tests
+        run: cargo test --workspace --quiet
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Build documentation
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+
+      - name: Build Wasm audio bridge
+        run: |
+          cargo install wasm-pack --locked
+          bash ./build-wasm.sh
+
+      - name: Check generated WebAssembly exports
+        run: |
+          test -s applications/web/wasm/ui24_audio_processing_bg.wasm
+          grep -q 'convert_audio_to_flac_bytes' applications/web/wasm/ui24_audio_processing.js
+          grep -q 'convert_audio_to_mp3_bytes' applications/web/wasm/ui24_audio_processing.js

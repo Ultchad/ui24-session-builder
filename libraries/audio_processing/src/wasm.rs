@@ -8,7 +8,11 @@ use crate::{AudioFormat, FlacEncoder, Mp3Encoder};
 /// the browser keeps the source file unless the conversion succeeds.
 #[wasm_bindgen]
 pub fn convert_audio_to_flac_bytes(bytes: &[u8], extension: &str) -> Vec<u8> {
-    let format = match extension.trim_start_matches('.').to_ascii_lowercase().as_str() {
+    let format = match extension
+        .trim_start_matches('.')
+        .to_ascii_lowercase()
+        .as_str()
+    {
         "wav" => AudioFormat::Wav,
         "flac" => AudioFormat::Flac,
         "aiff" | "aif" => AudioFormat::Aiff,

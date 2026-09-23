@@ -9,6 +9,10 @@ Online Web Application: [https://ultchad.github.io/ui24-session-builder/](https:
 Before deployment, GitHub Actions validates that the static page, the Rust/WASM
 bundle, FLAC/MP3 exports, and the per-track stereo actions are all present.
 
+The `Validate Workspace` workflow runs formatting, Rust tests, Clippy,
+documentation checks, and a fresh WebAssembly bridge build on pull requests
+and pushes to `dev` or `main`.
+
 The static Web UI has also been manually verified in Firefox. Android-specific
 file-picker and download behavior remains under validation.
 
@@ -20,7 +24,7 @@ Implemented today:
 - Session model and Ui24R channel assignments from `i.0` to `i.21`
 - Session validation rules
 - WAV, FLAC, AIFF, and MP3 metadata extraction
-- WAV, FLAC, AIFF, and MP3 conversion to FLAC, WAV, or constant-bitrate 320 kbps MP3 via `--format` on the CLI (FLAC is the only format confirmed compatible with real Ui24R hardware)
+- WAV, FLAC, AIFF, and MP3 conversion to FLAC, WAV, or constant-bitrate 320 kbps MP3 via `--format` on the CLI (FLAC and WAV have both been confirmed compatible with real Ui24R hardware; MP3 sessions have been confirmed to fail on real hardware with a session error)
 - Panic-safe handling of malformed or truncated audio inputs (decoder panics are caught and reported as errors instead of crashing)
 - Valid FLAC output for real 24-bit WAV sources, verified with long multitrack files
 - Generic and native FLAC and WAV output
@@ -172,7 +176,7 @@ Convert an audio file to FLAC:
 cargo run -p ui24-session-builder -- convert ./input.wav ./output.flac
 ```
 
-Convert to WAV instead (local use only; not confirmed compatible with the Ui24R mixer):
+Convert to WAV instead (confirmed compatible with real Ui24R hardware, though it is not the vendor-documented format):
 
 ```bash
 cargo run -p ui24-session-builder -- convert ./input.wav ./output.wav --format wav
@@ -204,20 +208,26 @@ files in the input directory and writes only `.uirecsession` directly there:
 cargo run -p ui24-session-builder -- create ./tracks --name "Live Session"
 ```
 
-This default mode does not convert or copy audio files. Use an output
-directory when a complete session export is required. `--zip` requires an
-explicit output path.
+This default mode does not convert or copy audio files, so the written
+`ext`/`files` fields describe the real on-disk extension of the input files
+rather than `--format` (which is ignored and only prints a note here); a
+folder mixing several audio extensions is rejected instead of producing a
+mismatched `.uirecsession`. Use an output directory when a complete session
+export is required. `--zip` requires an explicit output path.
 
 The command analyzes every supported file, rejects mixed sample rates, converts
 the sources to FLAC, assigns channels in sorted filename order, and writes the
 `.uirecsession` file. Use `--zip` to write a root-level FLAC and `.uirecsession`
-archive instead. Compatibility validation against a real Ui24R remains future
-work.
+archive instead. FLAC and WAV sessions have been confirmed to load and play
+back on a real Ui24R mixer; MP3 sessions have been confirmed to fail with a
+session error and should be avoided for real exports.
 
-`convert` and `create` accept `--format flac|wav|mp3` (default `flac`). Only
-`flac` is confirmed compatible with real Ui24R hardware; `wav` produces a
-real, working local export (the CLI prints a compatibility warning to
-stderr); `mp3` produces a constant-bitrate 320 kbps MP3 for local use.
+`convert` and `create` accept `--format flac|wav|mp3` (default `flac`). `flac`
+and `wav` have both been confirmed compatible with real Ui24R hardware (the
+CLI still prints a note to stderr that WAV is not the vendor-documented
+format); `mp3` produces a constant-bitrate 320 kbps export that has been
+confirmed to fail on real Ui24R hardware with a session error, so it remains
+local use only.
 
 ## Web Application
 
