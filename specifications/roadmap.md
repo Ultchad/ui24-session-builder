@@ -30,6 +30,7 @@ The project has a browser WebAssembly processing layer. Real-device testing has 
 - [x] Verify the static Web UI in Firefox
 - [ ] Expand browser/mobile verification for Firefox Android, track removal reliability, and download behavior
 - [x] Add CI validation for the static Web bundle, Wasm exports, and stereo actions
+- [x] Add Rust CI validation for formatting, tests, Clippy, documentation, and a fresh Wasm bridge build
 - [ ] Move from a static browser preview to a broader desktop/mobile distribution target once the core workflow is proven end-to-end
 
 Development tooling now documents matching Rust compiler, `rust-src`,

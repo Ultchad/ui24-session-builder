@@ -103,8 +103,7 @@ impl FlacEncoder {
         let remainder = original_total_samples % DEFAULT_BLOCK_SIZE;
         if remainder != 0 {
             padded_samples.resize(
-                padded_samples.len()
-                    + (DEFAULT_BLOCK_SIZE - remainder) * usize::from(channels),
+                padded_samples.len() + (DEFAULT_BLOCK_SIZE - remainder) * usize::from(channels),
                 0,
             );
         }

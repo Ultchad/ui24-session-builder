@@ -10,6 +10,7 @@
 - [x] Validation du flux de conversion FLAC côté navigateur via Rust/WASM (bundle généré et chargé, conversion source et split stéréo vérifiés, fallback vérifié quand le module n’est pas présent)
 - [x] Validation de l’encodage MP3 320 kbps côté CLI et du bridge Wasm
 - [x] Validation CI de la présence du bundle Web, des exports Wasm FLAC/MP3 et des actions stéréo
+- [x] Validation CI Rust : formatage, tests, Clippy, documentation et build Wasm frais
 - [x] Vérification manuelle de l’interface Web dans Firefox
 
 1. Sur ton PC (CLI Rust)
